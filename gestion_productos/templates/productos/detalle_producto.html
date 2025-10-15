@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}
+    VOCALCART - Detalle del Producto
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <nav aria-label="Navegación de breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'productos:lista' %}" class="text-success">
+                    <i class="fas fa-home me-1" aria-hidden="true"></i>
+                    Productos
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">{{ producto.nombre }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-box-open fa-6x text-muted mb-3" aria-hidden="true"></i>
+                    <p class="sr-only">Imagen del producto {{ producto.nombre }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h1 class="h3 fw-bold text-success mb-3">{{ producto.nombre }}</h1>
+                    
+                    <div class="producto-info mb-4">
+                        <p><strong>Categoría:</strong> {{ producto.categoria.nombre }}</p>
+                        <p><strong>Referencia:</strong> {{ producto.referencia }}</p>
+                        <p><strong>Stock disponible:</strong> {{ producto.stock }} unidades</p>
+                        <p class="h4 text-success fw-bold">Precio: ${{ producto.precio|floatformat:0 }}</p>
+                    </div>
+                    
+                    <div class="descripcion mb-4">
+                        <h2 class="h5 fw-bold mb-2">Descripción:</h2>
+                        <p class="text-muted">{{ producto.descripcion|default:"Sin descripción disponible" }}</p>
+                    </div>
+                    
+                    <div class="acciones">
+                        {% if producto.stock > 0 %}
+                            <button type="button" 
+                                    class="btn btn-success btn-lg w-100 mb-3"
+                                    onclick="agregarAlCarrito({{ producto.id }}, '{{ producto.nombre }}', {{ producto.precio }})">
+                                <i class="fas fa-cart-plus me-2" aria-hidden="true"></i>
+                                Agregar al carrito
+                            </button>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                                Producto no disponible en este momento
+                            </div>
+                        {% endif %}
+                        
+                        <a href="{% url 'productos:lista' %}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
+                            Volver a productos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function agregarAlCarrito(productoId, productoNombre, productoPrecio) {
+    fetch(`/productos/agregar-carrito/${productoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'cantidad=1'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`¡${productoNombre} agregado al carrito exitosamente!`);
+        } else {
+            alert('Error al agregar el producto al carrito');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar el producto al carrito');
+    });
+}
+</script>
+{% endblock contenido %}

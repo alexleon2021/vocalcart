@@ -1,0 +1,302 @@
+/* Estilos específicos para el formulario de registro */
+
+/* Animaciones de entrada */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Estilo del contenedor principal */
+.register-container {
+    animation: slideInUp 0.8s ease-out;
+}
+
+/* Efectos para los campos de entrada */
+.form-floating {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.form-floating:hover {
+    transform: translateY(-2px);
+}
+
+.form-control {
+    transition: all 0.3s ease;
+    border: 2px solid #e0e0e0;
+}
+
+.form-control:focus {
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15) !important;
+    transform: scale(1.02);
+}
+
+/* Validación visual mejorada */
+.form-control.is-valid {
+    border-color: #198754 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.94-.94 1.94 1.94L7.59 5.3l.94.94-3.46 3.46L2.3 6.73z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.25 5.25 1.5 1.5m0-1.5-1.5 1.5'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Estilos para las etiquetas */
+.form-floating label {
+    transition: all 0.3s ease;
+    color: #6c757d;
+}
+
+.form-floating input:focus + label,
+.form-floating input:not(:placeholder-shown) + label {
+    color: #198754 !important;
+    font-weight: 500;
+}
+
+/* Efectos para el botón */
+.btn-register {
+    background: linear-gradient(135deg, #198754, #20c997);
+    border: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-register::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-register:hover::before {
+    left: 100%;
+}
+
+.btn-register:hover {
+    background: linear-gradient(135deg, #157347, #1aa179);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(25, 135, 84, 0.3);
+}
+
+.btn-register:active {
+    transform: translateY(-1px);
+}
+
+/* Estilos para el checkbox */
+.form-check-input {
+    width: 1.2em;
+    height: 1.2em;
+    border: 2px solid #198754;
+    transition: all 0.3s ease;
+}
+
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+    animation: pulse 0.5s ease-in-out;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+/* Efectos para los mensajes de alerta */
+.alert {
+    border: none;
+    border-radius: 10px;
+    animation: slideInUp 0.5s ease-out;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d1e7dd, #a3d3c4);
+    color: #0f5132;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da, #f1aeb5);
+    color: #842029;
+}
+
+/* Efectos para enlaces */
+.register-link {
+    color: #198754;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.register-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -2px;
+    left: 0;
+    background-color: #198754;
+    transition: width 0.3s ease;
+}
+
+.register-link:hover::after {
+    width: 100%;
+}
+
+.register-link:hover {
+    color: #157347;
+    transform: translateY(-1px);
+}
+
+/* Indicador de fuerza de contraseña */
+.password-strength {
+    height: 4px;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    margin-top: 5px;
+}
+
+.password-weak {
+    background-color: #dc3545;
+    width: 25%;
+}
+
+.password-medium {
+    background-color: #ffc107;
+    width: 50%;
+}
+
+.password-strong {
+    background-color: #198754;
+    width: 75%;
+}
+
+.password-very-strong {
+    background-color: #0d6efd;
+    width: 100%;
+}
+
+/* Efectos de loading */
+.btn-loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    border-color: #ffffff transparent #ffffff transparent;
+    animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsividad mejorada */
+@media (max-width: 768px) {
+    .register-container {
+        padding: 1rem;
+    }
+    
+    .card {
+        margin: 1rem;
+    }
+    
+    .form-floating label {
+        font-size: 0.9rem;
+    }
+}
+
+/* Efectos adicionales para el logo */
+.logo-container {
+    transition: all 0.3s ease;
+}
+
+.logo-container:hover {
+    transform: scale(1.05) rotate(2deg);
+}
+
+/* Estilos para tooltips personalizados */
+.tooltip-custom {
+    position: relative;
+    cursor: help;
+}
+
+.tooltip-custom::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.tooltip-custom:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Efectos de enfoque mejorados */
+.form-control:focus,
+.form-check-input:focus,
+.btn:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25) !important;
+}
+
+/* Transiciones suaves para el cambio de tema */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block contenido %}
+<div class="container vh-100 d-flex flex-column align-items-center justify-content-center">
+<!-- <h5 class="text-center mb-3"><b>S</b>istema de <b>A</b>dministración de <b>R</b>ecursos y <b>A</b>plicaciones</h5>-->
+    <div class="card shadow-lg rounded-3 border-0" style="max-width: 400px; width: 100%; animation: fadeIn 0.8s ease-in-out;">
+        <div class="card-body p-4 textoI" style="font-family: Lato;">
+        <form action="" method="POST">
+            {% csrf_token %}
+            <div class="text-center mb-3">
+                <img src="{% static 'imgs/vocalcart.jpg' %}" 
+                alt="Logo de VOCALCART" 
+                style="max-width: 150px; height: auto;">
+            </div>
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" name="username" id="username" placeholder="Usuario" required>
+                <label for="username">Usuario</label>
+            </div>
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" name="password" id="password" placeholder="Contraseña" required>
+                <label for="password">Contraseña</label>
+            </div>
+            <div class="d-grid gap-2 mb-3">
+                <button type="submit" class="btn btn-success btn-lg" name="login" style="font-family: Lato;">
+                    <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión
+                </button>
+            </div>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'error' %}
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% elif message.tags == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <div class="text-center">
+
+                <div class="row">
+                    <div class="col">
+                    </div>
+
+                    <a href="{% url 'registrarse' %}" class="text-success text-decoration-none fw-bold">
+                        <i class="fas fa-user-plus me-1"></i>Crear cuenta
+                    </a>
+                  
+                </div>
+
+    
+            </div>
+
+        </form>
+        </div>
+    </div> 
+    
+    <div class="text-center mt-3" style="color: white;">
+        UNEMI - VOCALCART &copy V0.0
+    </div>
+</div>
+
+<style>
+    /* Estilos adicionales para las alertas de login */
+    .alert {
+        border: none;
+        border-radius: 10px;
+        animation: slideDown 0.5s ease-in-out;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d1e7dd, #a3d3c4);
+        color: #0f5132;
+        border-left: 4px solid #198754;
+    }
+    
+    .alert-danger {
+        background: linear-gradient(135deg, #f8d7da, #f1aeb5);
+        color: #842029;
+        border-left: 4px solid #dc3545;
+    }
+    
+    .alert-info {
+        background: linear-gradient(135deg, #d1ecf1, #abdde5);
+        color: #055160;
+        border-left: 4px solid #0dcaf0;
+    }
+    
+    @keyframes slideDown {
+        from { 
+            opacity: 0; 
+            transform: translateY(-20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+    }
+    
+    /* Efectos hover para las alertas */
+    .alert:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock contenido %}

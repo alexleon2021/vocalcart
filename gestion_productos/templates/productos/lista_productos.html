@@ -1,0 +1,1170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}
+    VOCALCART - Productos Accesibles para Personas con Discapacidad Visual
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/productos_accesibles.css' %}">
+
+<!-- Anunciador para lectores de pantalla -->
+<div aria-live="assertive" aria-atomic="true" id="anunciador" class="sr-only"></div>
+<div aria-live="polite" aria-atomic="true" id="anunciador-suave" class="sr-only"></div>
+
+<div class="container-fluid py-4">
+    <!-- Control de Voz en Tiempo Real -->
+    <div class="voz-control-container position-fixed top-0 end-0 m-3" style="z-index: 9999;">
+        <div class="card border-0 shadow-lg bg-primary text-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center mb-2">
+                    <h2 class="h6 mb-0 me-3">Control de Voz</h2>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="voz-habilitada" checked>
+                        <label class="form-check-label text-white" for="voz-habilitada">
+                            Activado
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="btn-group w-100 mb-2" role="group" aria-label="Controles de voz">
+                    <button type="button" 
+                            class="btn btn-success btn-sm" 
+                            id="btn-escuchar"
+                            aria-describedby="ayuda-escuchar">
+                        <i class="fas fa-microphone me-1" aria-hidden="true"></i>
+                        Escuchar
+                    </button>
+                    <button type="button" 
+                            class="btn btn-warning btn-sm" 
+                            id="btn-parar-voz"
+                            aria-describedby="ayuda-parar">
+                        <i class="fas fa-stop me-1" aria-hidden="true"></i>
+                        Parar
+                    </button>
+                    <button type="button" 
+                            class="btn btn-info btn-sm" 
+                            id="btn-repetir"
+                            aria-describedby="ayuda-repetir">
+                        <i class="fas fa-redo me-1" aria-hidden="true"></i>
+                        Repetir
+                    </button>
+                </div>
+                
+                <div class="velocidad-voz mb-2">
+                    <label for="velocidad-voz" class="form-label small text-white">Velocidad:</label>
+                    <input type="range" 
+                           class="form-range" 
+                           id="velocidad-voz" 
+                           min="0.5" 
+                           max="2" 
+                           step="0.1" 
+                           value="1"
+                           aria-describedby="ayuda-velocidad">
+                </div>
+                
+                <div class="estado-voz">
+                    <small class="text-white">
+                        <i class="fas fa-circle me-1" id="indicador-voz" aria-hidden="true"></i>
+                        <span id="estado-voz-texto">Voz lista</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header principal con navegación por voz -->
+    <header class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="display-4 fw-bold text-primary mb-2" 
+                    tabindex="0" 
+                    data-voz="Bienvenido a VOCALCART, tu tienda accesible">
+                    <i class="fas fa-universal-access me-3" aria-hidden="true"></i>
+                    VOCALCART Accesible
+                </h1>
+                <p class="lead text-muted" 
+                   data-voz="Interfaz optimizada para personas con discapacidad visual. {{ total_productos }} productos disponibles">
+                    🔊 Optimizado para discapacidad visual - {{ total_productos }} productos
+                </p>
+            </div>
+            
+            <!-- Botón del Asistente de Voz -->
+            <button type="button" 
+                    class="btn btn-primary btn-lg position-relative"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#asistente-modal"
+                    id="btn-asistente-voz"
+                    data-voz="Abrir asistente virtual de voz">
+                <i class="fas fa-robot me-2" aria-hidden="true"></i>
+                <span class="fw-bold">Asistente de Voz</span>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                    🔊
+                </span>
+            </button>
+        </div>
+        
+        <!-- Atajos de teclado visibles -->
+        <div class="card bg-light border-0 mb-4">
+            <div class="card-body py-2">
+                <h2 class="h6 mb-2" data-voz="Atajos de teclado disponibles">🎯 Atajos de Teclado:</h2>
+                <div class="row g-2 small">
+                    <div class="col-md-3">
+                        <kbd>Alt + V</kbd> <span data-voz="Alt V para activar voz">Activar/Desactivar Voz</span>
+                    </div>
+                    <div class="col-md-3">
+                        <kbd>Alt + L</kbd> <span data-voz="Alt L para leer página">Leer Página</span>
+                    </div>
+                    <div class="col-md-3">
+                        <kbd>Alt + A</kbd> <span data-voz="Alt A para abrir asistente">Abrir Asistente</span>
+                    </div>
+                    <div class="col-md-3">
+                        <kbd>Alt + F</kbd> <span data-voz="Alt F para filtros">Ir a Filtros</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filtros con anuncios de voz -->
+    <section class="mb-4" aria-label="Filtros de productos" id="seccion-filtros">
+        <div class="card border-primary shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="h5 mb-0" data-voz="Sección de filtros de productos">
+                    <i class="fas fa-filter me-2" aria-hidden="true"></i>
+                    Filtros de Búsqueda
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="filtro-categoria" class="form-label fw-bold h6" data-voz="Seleccionar categoría de productos">
+                            📂 Categoría:
+                        </label>
+                        <select id="filtro-categoria" 
+                                class="form-select form-select-lg border-primary" 
+                                aria-describedby="ayuda-categoria"
+                                data-voz="Lista de categorías disponibles">
+                            <option value="" data-voz="Todas las categorías">Todas las categorías</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}" data-voz="Categoría {{ categoria.nombre }}">
+                                    {{ categoria.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div id="ayuda-categoria" class="form-text">
+                            🔊 Use las flechas para navegar entre categorías
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="filtro-precio" class="form-label fw-bold h6" data-voz="Seleccionar rango de precios">
+                            💰 Rango de Precio:
+                        </label>
+                        <select id="filtro-precio" 
+                                class="form-select form-select-lg border-primary"
+                                data-voz="Lista de rangos de precio">
+                            <option value="" data-voz="Todos los precios">Todos los precios</option>
+                            <option value="0-50" data-voz="De 0 a 50 pesos">$0 - $50</option>
+                            <option value="50-100" data-voz="De 50 a 100 pesos">$50 - $100</option>
+                            <option value="100-500" data-voz="De 100 a 500 pesos">$100 - $500</option>
+                            <option value="500+" data-voz="Más de 500 pesos">Más de $500</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" 
+                                class="btn btn-outline-primary btn-lg w-100" 
+                                onclick="limpiarFiltros()"
+                                data-voz="Limpiar todos los filtros aplicados">
+                            <i class="fas fa-refresh me-2" aria-hidden="true"></i>
+                            🔄 Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-3 p-2 bg-light rounded">
+                    <span class="fw-bold" data-voz="Resultados de filtrado">📊 Resultados: </span>
+                    <span id="contador-productos" data-voz="{{ total_productos }} productos encontrados">
+                        {{ total_productos }} productos encontrados
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Grid de productos con navegación por voz -->
+    <main id="productos-principales">
+        <h2 class="h4 mb-4" data-voz="Lista principal de productos disponibles">
+            🛍️ Productos Disponibles
+        </h2>
+        
+        <div class="row g-4" id="productos-grid" role="main" aria-label="Productos disponibles">
+            {% for producto in productos %}
+            <div class="col-sm-6 col-lg-4 col-xl-3 producto-item" 
+                 data-categoria="{{ producto.categoria.id }}" 
+                 data-precio="{{ producto.precio }}">
+                
+                <article class="card producto-card h-100 shadow border-primary" 
+                         tabindex="0" 
+                         role="article"
+                         aria-labelledby="producto-{{ producto.id }}-titulo"
+                         aria-describedby="producto-{{ producto.id }}-descripcion"
+                         data-voz="Producto {{ producto.nombre }}, precio {{ producto.precio }} pesos, categoría {{ producto.categoria.nombre }}, {% if producto.stock > 0 %}disponible{% else %}agotado{% endif %}"
+                         onkeydown="manejarTecladoProducto(event, {{ producto.id }})">
+                    
+                    <!-- Imagen del producto con descripción de voz -->
+                    <div class="card-img-top producto-imagen-container bg-light position-relative" 
+                         role="img" 
+                         aria-label="Imagen representativa de {{ producto.nombre }}">
+                        
+                        <div class="producto-imagen d-flex align-items-center justify-content-center py-5">
+                            <div class="text-center">
+                                <i class="fas fa-box-open fa-4x text-primary mb-2" aria-hidden="true"></i>
+                                <p class="small text-muted fw-bold">{{ producto.categoria.nombre }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Badge de stock con anuncio -->
+                        {% if producto.stock > 0 %}
+                            <span class="badge bg-success position-absolute top-0 end-0 m-2 fs-6" 
+                                  aria-label="Producto disponible, {{ producto.stock }} unidades en stock"
+                                  data-voz="Disponible, {{ producto.stock }} unidades">
+                                ✅ Disponible ({{ producto.stock }})
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger position-absolute top-0 end-0 m-2 fs-6" 
+                                  aria-label="Producto agotado, sin stock disponible"
+                                  data-voz="Producto agotado">
+                                ❌ Agotado
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <!-- Título del producto con navegación por voz -->
+                        <h3 class="card-title h5 fw-bold mb-3 text-primary" 
+                            id="producto-{{ producto.id }}-titulo"
+                            data-voz="Nombre del producto: {{ producto.nombre }}">
+                            📦 {{ producto.nombre }}
+                        </h3>
+                        
+                        <!-- Información detallada del producto -->
+                        <div class="producto-info mb-3" id="producto-{{ producto.id }}-descripcion">
+                            <div class="mb-2">
+                                <span class="badge bg-light text-dark me-2" 
+                                      data-voz="Categoría {{ producto.categoria.nombre }}">
+                                    📂 {{ producto.categoria.nombre }}
+                                </span>
+                            </div>
+                            
+                            <p class="small text-muted mb-2" data-voz="Referencia {{ producto.referencia }}">
+                                <strong>🏷️ Ref:</strong> {{ producto.referencia }}
+                            </p>
+                            
+                            <p class="h4 fw-bold text-success mb-0" 
+                               role="text" 
+                               aria-label="Precio {{ producto.precio }} pesos"
+                               data-voz="Precio {{ producto.precio }} pesos">
+                                💰 ${{ producto.precio|floatformat:0 }}
+                            </p>
+                        </div>
+                        
+                        <!-- Botones de acción con voz -->
+                        <div class="mt-auto">
+                            <div class="d-grid gap-3">
+                                <!-- Botón de más información -->
+                                <button type="button" 
+                                        class="btn btn-outline-primary btn-lg border-2"
+                                        onclick="mostrarDetallesConVoz({{ producto.id }})"
+                                        aria-describedby="ayuda-info-{{ producto.id }}"
+                                        data-voz="Ver información detallada de {{ producto.nombre }}">
+                                    <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+                                    <span class="fw-bold">📋 Más Información</span>
+                                </button>
+                                <div id="ayuda-info-{{ producto.id }}" class="sr-only">
+                                    Presione Enter para ver detalles completos de {{ producto.nombre }}
+                                </div>
+                                
+                                <!-- Botón de agregar al carrito -->
+                                {% if producto.stock > 0 %}
+                                    <button type="button" 
+                                            class="btn btn-success btn-lg border-2 agregar-carrito-btn"
+                                            data-producto-id="{{ producto.id }}"
+                                            data-producto-nombre="{{ producto.nombre }}"
+                                            data-producto-precio="{{ producto.precio }}"
+                                            aria-describedby="ayuda-carrito-{{ producto.id }}"
+                                            data-voz="Agregar {{ producto.nombre }} al carrito de compras por {{ producto.precio }} pesos">
+                                        <i class="fas fa-cart-plus me-2" aria-hidden="true"></i>
+                                        <span class="fw-bold">🛒 Agregar al Carrito</span>
+                                    </button>
+                                    <div id="ayuda-carrito-{{ producto.id }}" class="sr-only">
+                                        Presione Enter para agregar {{ producto.nombre }} al carrito por ${{ producto.precio }}
+                                    </div>
+                                {% else %}
+                                    <button type="button" 
+                                            class="btn btn-secondary btn-lg border-2" 
+                                            disabled 
+                                            aria-label="Producto {{ producto.nombre }} no disponible"
+                                            data-voz="{{ producto.nombre }} no está disponible actualmente">
+                                        <i class="fas fa-ban me-2" aria-hidden="true"></i>
+                                        <span class="fw-bold">❌ No Disponible</span>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center py-5" role="alert" data-voz="No hay productos disponibles en este momento">
+                    <i class="fas fa-info-circle fa-3x mb-3" aria-hidden="true"></i>
+                    <h4>📭 No hay productos disponibles</h4>
+                    <p class="mb-0">En este momento no tenemos productos para mostrar.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<!-- Modal de Asistente de Voz Especializado -->
+<div class="modal fade" id="asistente-modal" tabindex="-1" aria-labelledby="asistente-modal-title" aria-describedby="asistente-modal-descripcion">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h2 class="modal-title h4" id="asistente-modal-title" data-voz="Asistente virtual de voz para personas con discapacidad visual">
+                    <i class="fas fa-robot me-3" aria-hidden="true"></i>
+                    🔊 Asistente de Voz VOCALCART
+                </h2>
+                <button type="button" 
+                        class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal" 
+                        aria-label="Cerrar asistente virtual"
+                        data-voz="Cerrar asistente virtual"></button>
+            </div>
+            <div class="modal-body">
+                <div id="asistente-modal-descripcion" class="mb-4">
+                    <div class="alert alert-info" data-voz="Bienvenido al asistente de voz. Puedes usar comandos de voz o escribir tus preguntas">
+                        <h3 class="h5 mb-2">🎯 ¡Bienvenido al Asistente de Voz!</h3>
+                        <p class="mb-2">Soy tu asistente especializado para personas con discapacidad visual. Puedo:</p>
+                        <ul class="mb-0">
+                            <li>🗣️ Leer productos en voz alta</li>
+                            <li>🔍 Buscar productos específicos</li>
+                            <li>💰 Informar precios y stock</li>
+                            <li>🛒 Ayudarte con el proceso de compra</li>
+                            <li>⌨️ Enseñarte atajos de teclado</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Controles de voz del asistente -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Comandos de voz disponibles">🎤 Comandos de Voz:</h4>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Leyendo todos los productos disponibles'); leerTodosLosProductos()">
+                                        "Leer productos"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Mostrando productos baratos'); filtrarPorPrecio('0-50')">
+                                        "Productos baratos"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Mostrando productos de electrónicos'); filtrarPorCategoria('Electrónicos')">
+                                        "Productos electrónicos"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Explicando cómo navegar la tienda'); explicarNavegacion()">
+                                        "¿Cómo navegar?"
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Estado del reconocimiento de voz">🎯 Estado de Voz:</h4>
+                                <div id="reconocimiento-estado" class="mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="status-indicator me-2" id="status-voz"></div>
+                                        <span id="status-texto">Voz lista</span>
+                                    </div>
+                                    <button class="btn btn-primary w-100" id="btn-iniciar-reconocimiento" onclick="iniciarReconocimientoVoz()">
+                                        <i class="fas fa-microphone me-2"></i>
+                                        Iniciar Reconocimiento de Voz
+                                    </button>
+                                </div>
+                                <div class="small text-muted">
+                                    💡 Di "Hola" para activar el asistente
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat del asistente -->
+                <div class="chat-container">
+                    <div class="chat-messages border rounded p-3 mb-3" 
+                         id="chat-messages" 
+                         role="log" 
+                         aria-live="polite" 
+                         aria-label="Conversación con el asistente"
+                         style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                        
+                        <div class="message asistente-message mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-robot" aria-hidden="true"></i>
+                                </div>
+                                <div class="message-content">
+                                    <strong>Asistente de Voz:</strong>
+                                    <p class="mb-2">¡Hola! Soy tu asistente especializado para discapacidad visual. Estoy aquí para hacer tu experiencia de compra más accesible.</p>
+                                    <div class="small text-muted">
+                                        💡 <strong>Tip:</strong> Puedes usar comandos de voz o escribir. Di "ayuda" para más opciones.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Input para chat -->
+                    <div class="input-group">
+                        <label for="chat-input" class="sr-only">Escribir mensaje al asistente</label>
+                        <input type="text" 
+                               id="chat-input" 
+                               class="form-control form-control-lg" 
+                               placeholder="Escribe tu pregunta o usa comandos de voz..." 
+                               aria-describedby="ayuda-chat">
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                onclick="enviarMensajeConVoz()"
+                                aria-label="Enviar mensaje">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" 
+                                class="btn btn-success" 
+                                onclick="activarEscuchaDirecta()"
+                                aria-label="Activar micrófono">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="ayuda-chat" class="form-text">
+                        Presiona Enter para enviar o usa el micrófono para hablar directamente
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-voz="Cerrar asistente">
+                    <i class="fas fa-times me-2" aria-hidden="true"></i>
+                    Cerrar
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="limpiarChatConVoz()" data-voz="Iniciar nueva conversación">
+                    <i class="fas fa-refresh me-2" aria-hidden="true"></i>
+                    Nueva Conversación
+                </button>
+                <button type="button" class="btn btn-success" onclick="leerPaginaCompleta()" data-voz="Leer toda la página">
+                    <i class="fas fa-volume-up me-2" aria-hidden="true"></i>
+                    Leer Página Completa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de detalles del producto con voz -->
+<div class="modal fade" id="producto-detalle-modal" tabindex="-1" aria-labelledby="producto-detalle-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h2 class="modal-title h4" id="producto-detalle-title">
+                    <i class="fas fa-box me-3" aria-hidden="true"></i>
+                    📦 Detalles del Producto
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar detalles"></button>
+            </div>
+            <div class="modal-body" id="producto-detalle-content">
+                <!-- El contenido se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales para funcionalidad de voz
+let vozHabilitada = true;
+let reconocimientoVoz = null;
+let vozActual = null;
+let velocidadVoz = 1;
+let ultimoTextoHablado = '';
+let escuchandoComandos = false;
+
+// Inicialización de funciones de voz
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarVoz();
+    configurarAtajosTeclado();
+    configurarEventosVoz();
+    configurarBotonesConVoz();
+    
+    // Anunciar carga de página
+    setTimeout(() => {
+        if (vozHabilitada) {
+            hablarTexto('Página de productos VOCALCART cargada. Interfaz optimizada para discapacidad visual. Usa Alt+L para leer toda la página, Alt+A para abrir el asistente de voz.');
+        }
+    }, 1500);
+});
+
+// Inicializar síntesis de voz
+function inicializarVoz() {
+    if ('speechSynthesis' in window) {
+        // Configurar voz en español
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = function() {
+            const voces = speechSynthesis.getVoices();
+            const vozEspanol = voces.find(voz => voz.lang.startsWith('es'));
+            if (vozEspanol) {
+                vozActual = vozEspanol;
+            }
+        };
+        
+        // Configurar reconocimiento de voz
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reconocimientoVoz = new SpeechRecognition();
+            reconocimientoVoz.continuous = true;
+            reconocimientoVoz.interimResults = true;
+            reconocimientoVoz.lang = 'es-ES';
+            
+            reconocimientoVoz.onresult = function(event) {
+                const ultima = event.results.length - 1;
+                const comando = event.results[ultima][0].transcript.toLowerCase().trim();
+                
+                if (event.results[ultima].isFinal) {
+                    procesarComandoVoz(comando);
+                }
+            };
+            
+            reconocimientoVoz.onerror = function(event) {
+                console.error('Error en reconocimiento de voz:', event.error);
+                actualizarEstadoVoz('Error en reconocimiento');
+            };
+            
+            reconocimientoVoz.onstart = function() {
+                actualizarEstadoVoz('Escuchando...');
+                escuchandoComandos = true;
+            };
+            
+            reconocimientoVoz.onend = function() {
+                actualizarEstadoVoz('Voz lista');
+                escuchandoComandos = false;
+            };
+        }
+    } else {
+        console.warn('Síntesis de voz no soportada en este navegador');
+    }
+}
+
+// Función principal para hablar texto
+function hablarTexto(texto, interrumpir = true) {
+    if (!vozHabilitada || !texto) return;
+    
+    if (interrumpir) {
+        speechSynthesis.cancel();
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = velocidadVoz;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    if (vozActual) {
+        utterance.voice = vozActual;
+    }
+    
+    ultimoTextoHablado = texto;
+    
+    utterance.onstart = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-success';
+        document.getElementById('estado-voz-texto').textContent = 'Hablando...';
+    };
+    
+    utterance.onend = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-secondary';
+        document.getElementById('estado-voz-texto').textContent = 'Voz lista';
+    };
+    
+    speechSynthesis.speak(utterance);
+    
+    // Anunciar en región ARIA
+    const anunciador = document.getElementById('anunciador');
+    if (anunciador) {
+        anunciador.textContent = texto;
+        setTimeout(() => anunciador.textContent = '', 100);
+    }
+}
+
+// Configurar atajos de teclado
+function configurarAtajosTeclado() {
+    document.addEventListener('keydown', function(e) {
+        // Alt + V: Activar/Desactivar voz
+        if (e.altKey && e.key === 'v') {
+            e.preventDefault();
+            toggleVoz();
+        }
+        
+        // Alt + L: Leer página completa
+        if (e.altKey && e.key === 'l') {
+            e.preventDefault();
+            leerPaginaCompleta();
+        }
+        
+        // Alt + A: Abrir asistente
+        if (e.altKey && e.key === 'a') {
+            e.preventDefault();
+            document.getElementById('btn-asistente-voz').click();
+        }
+        
+        // Alt + F: Ir a filtros
+        if (e.altKey && e.key === 'f') {
+            e.preventDefault();
+            document.getElementById('seccion-filtros').focus();
+            hablarTexto('Navegando a sección de filtros');
+        }
+        
+        // Escape: Parar voz
+        if (e.key === 'Escape') {
+            speechSynthesis.cancel();
+        }
+        
+        // Enter en chat
+        if (e.key === 'Enter' && e.target.id === 'chat-input') {
+            e.preventDefault();
+            enviarMensajeConVoz();
+        }
+    });
+}
+
+// Configurar eventos específicos de voz
+function configurarEventosVoz() {
+    // Toggle de voz
+    document.getElementById('voz-habilitada').addEventListener('change', function() {
+        vozHabilitada = this.checked;
+        if (vozHabilitada) {
+            hablarTexto('Voz activada');
+        } else {
+            speechSynthesis.cancel();
+        }
+    });
+    
+    // Control de velocidad
+    document.getElementById('velocidad-voz').addEventListener('input', function() {
+        velocidadVoz = parseFloat(this.value);
+        hablarTexto(`Velocidad cambiada a ${Math.round(velocidadVoz * 100)} por ciento`, true);
+    });
+    
+    // Botones de control
+    document.getElementById('btn-escuchar').addEventListener('click', iniciarReconocimientoVoz);
+    document.getElementById('btn-parar-voz').addEventListener('click', function() {
+        speechSynthesis.cancel();
+        if (reconocimientoVoz && escuchandoComandos) {
+            reconocimientoVoz.stop();
+        }
+        hablarTexto('Voz detenida');
+    });
+    document.getElementById('btn-repetir').addEventListener('click', function() {
+        if (ultimoTextoHablado) {
+            hablarTexto(ultimoTextoHablado);
+        }
+    });
+    
+    // Eventos de filtros con voz
+    document.getElementById('filtro-categoria').addEventListener('change', function() {
+        const categoria = this.options[this.selectedIndex].text;
+        hablarTexto(`Filtro de categoría cambiado a ${categoria}`);
+        aplicarFiltrosConVoz();
+    });
+    
+    document.getElementById('filtro-precio').addEventListener('change', function() {
+        const precio = this.options[this.selectedIndex].text;
+        hablarTexto(`Filtro de precio cambiado a ${precio}`);
+        aplicarFiltrosConVoz();
+    });
+}
+
+// Configurar botones con retroalimentación de voz
+function configurarBotonesConVoz() {
+    // Agregar eventos de hover y focus a todos los elementos con data-voz
+    document.querySelectorAll('[data-voz]').forEach(elemento => {
+        elemento.addEventListener('focus', function() {
+            if (vozHabilitada) {
+                setTimeout(() => {
+                    hablarTexto(this.dataset.voz);
+                }, 300);
+            }
+        });
+        
+        // Para productos, también al hacer hover
+        if (elemento.classList.contains('producto-card')) {
+            elemento.addEventListener('mouseenter', function() {
+                if (vozHabilitada) {
+                    hablarTexto(this.dataset.voz);
+                }
+            });
+        }
+    });
+    
+    // Configurar botones de agregar al carrito
+    document.querySelectorAll('.agregar-carrito-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productoId = this.dataset.productoId;
+            const productoNombre = this.dataset.productoNombre;
+            const productoPrecio = this.dataset.productoPrecio;
+            
+            hablarTexto(`Agregando ${productoNombre} al carrito`);
+            agregarAlCarritoConVoz(productoId, productoNombre, productoPrecio);
+        });
+    });
+}
+
+// Manejar navegación por teclado en productos
+function manejarTecladoProducto(event, productoId) {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        mostrarDetallesConVoz(productoId);
+    }
+    
+    if (event.key === 'c' || event.key === 'C') {
+        event.preventDefault();
+        const btnCarrito = event.target.querySelector('.agregar-carrito-btn');
+        if (btnCarrito && !btnCarrito.disabled) {
+            btnCarrito.click();
+        }
+    }
+}
+
+// Funciones del asistente de voz
+
+function iniciarReconocimientoVoz() {
+    if (reconocimientoVoz) {
+        reconocimientoVoz.start();
+        hablarTexto('Reconocimiento de voz activado. Puedes hablar ahora');
+    } else {
+        hablarTexto('Reconocimiento de voz no disponible en este navegador');
+    }
+}
+
+function procesarComandoVoz(comando) {
+    console.log('Comando recibido:', comando);
+    
+    if (comando.includes('leer productos') || comando.includes('productos disponibles')) {
+        leerTodosLosProductos();
+    } else if (comando.includes('productos baratos') || comando.includes('económicos')) {
+        filtrarPorPrecio('0-50');
+        hablarTexto('Mostrando productos económicos de 0 a 50 pesos');
+    } else if (comando.includes('electrónicos') || comando.includes('tecnología')) {
+        filtrarPorCategoria('Electrónicos');
+    } else if (comando.includes('ayuda') || comando.includes('cómo navegar')) {
+        explicarNavegacion();
+    } else if (comando.includes('carrito') || comando.includes('comprar')) {
+        hablarTexto('Para agregar productos al carrito, navega hasta un producto y presiona la tecla C, o haz clic en el botón Agregar al carrito');
+    } else if (comando.includes('precio') || comando.includes('costo')) {
+        leerPrecios();
+    } else if (comando.includes('hola') || comando.includes('buenos días') || comando.includes('buenas tardes')) {
+        hablarTexto('¡Hola! Bienvenido a VOCALCART. Soy tu asistente de voz. ¿En qué puedo ayudarte hoy?');
+    } else {
+        hablarTexto('No entendí ese comando. Di "ayuda" para conocer los comandos disponibles');
+    }
+}
+
+function leerTodosLosProductos() {
+    const productos = document.querySelectorAll('.producto-card');
+    let texto = `Hay ${productos.length} productos disponibles. `;
+    
+    productos.forEach((producto, index) => {
+        const nombre = producto.querySelector('.card-title').textContent.trim();
+        const precio = producto.querySelector('.text-success').textContent.trim();
+        const disponible = !producto.querySelector('.btn-secondary');
+        
+        texto += `Producto ${index + 1}: ${nombre}, ${precio}, ${disponible ? 'disponible' : 'agotado'}. `;
+    });
+    
+    hablarTexto(texto);
+}
+
+function explicarNavegacion() {
+    const texto = `Para navegar por VOCALCART usa estas teclas: Tab para moverse entre elementos, Enter para seleccionar, Escape para cerrar ventanas. 
+    Atajos especiales: Alt+V activa o desactiva la voz, Alt+L lee toda la página, Alt+A abre el asistente, Alt+F va a filtros. 
+    En productos, presiona C para agregar al carrito directamente.`;
+    hablarTexto(texto);
+}
+
+function leerPrecios() {
+    const productos = document.querySelectorAll('.producto-card');
+    let precios = [];
+    
+    productos.forEach(producto => {
+        const nombre = producto.querySelector('.card-title').textContent.trim();
+        const precio = producto.querySelector('.text-success').textContent.trim();
+        precios.push(`${nombre}: ${precio}`);
+    });
+    
+    hablarTexto(`Precios de productos: ${precios.join(', ')}`);
+}
+
+function leerPaginaCompleta() {
+    const titulo = document.querySelector('h1').textContent;
+    const descripcion = 'Interfaz optimizada para personas con discapacidad visual';
+    const totalProductos = document.querySelectorAll('.producto-card').length;
+    
+    let texto = `${titulo}. ${descripcion}. Hay ${totalProductos} productos disponibles. `;
+    
+    // Leer filtros disponibles
+    texto += 'Filtros disponibles: ';
+    const categorias = document.querySelectorAll('#filtro-categoria option');
+    categorias.forEach(cat => {
+        if (cat.value) texto += cat.textContent + ', ';
+    });
+    
+    // Leer algunos productos destacados
+    const productos = document.querySelectorAll('.producto-card');
+    texto += 'Productos destacados: ';
+    for (let i = 0; i < Math.min(3, productos.length); i++) {
+        const nombre = productos[i].querySelector('.card-title').textContent.trim();
+        const precio = productos[i].querySelector('.text-success').textContent.trim();
+        texto += `${nombre} por ${precio}, `;
+    }
+    
+    texto += 'Usa los atajos de teclado para navegar más rápido.';
+    
+    hablarTexto(texto);
+}
+
+// Funciones actualizadas con voz
+
+function mostrarDetallesConVoz(productoId) {
+    hablarTexto('Cargando detalles del producto');
+    
+    fetch(`/productos/detalle/${productoId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const content = `
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-box-open fa-5x text-muted" aria-hidden="true"></i>
+                        <p class="sr-only">Imagen de ${data.nombre}</p>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <h3 class="h4 fw-bold text-success mb-3">📦 ${data.nombre}</h3>
+                    <div class="producto-detalles">
+                        <p><strong>🏷️ Referencia:</strong> ${data.referencia}</p>
+                        <p><strong>📂 Categoría:</strong> ${data.categoria}</p>
+                        <p><strong>💰 Precio:</strong> <span class="h5 text-success">$${data.precio}</span></p>
+                        <p><strong>📦 Stock disponible:</strong> ${data.stock} unidades</p>
+                        <p><strong>📋 Descripción:</strong></p>
+                        <p class="text-muted">${data.descripcion}</p>
+                    </div>
+                    ${data.disponible ? `
+                        <div class="mt-4">
+                            <button type="button" class="btn btn-success btn-lg" onclick="agregarAlCarritoConVoz(${data.id}, '${data.nombre}', ${data.precio})">
+                                <i class="fas fa-cart-plus me-2" aria-hidden="true"></i>
+                                🛒 Agregar al Carrito
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="alert alert-warning mt-4">
+                            <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                            ❌ Producto no disponible en este momento
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('producto-detalle-content').innerHTML = content;
+        new bootstrap.Modal(document.getElementById('producto-detalle-modal')).show();
+        
+        // Leer detalles en voz alta
+        const textoDetalle = `Detalles de ${data.nombre}. Precio ${data.precio} pesos. Categoría ${data.categoria}. ${data.stock} unidades disponibles. Descripción: ${data.descripcion}. ${data.disponible ? 'Producto disponible para compra' : 'Producto agotado'}`;
+        hablarTexto(textoDetalle);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        hablarTexto('Error al cargar los detalles del producto');
+    });
+}
+
+function agregarAlCarritoConVoz(productoId, productoNombre, productoPrecio) {
+    fetch(`/productos/agregar-carrito/${productoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'cantidad=1'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hablarTexto(`¡Excelente! ${productoNombre} ha sido agregado al carrito exitosamente por ${productoPrecio} pesos`);
+            
+            // Mostrar notificación visual también
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            
+            Toast.fire({
+                icon: 'success',
+                title: '¡Producto agregado!',
+                text: data.mensaje
+            });
+        } else {
+            hablarTexto(`Error al agregar ${productoNombre} al carrito`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        hablarTexto('Error al agregar el producto al carrito');
+    });
+}
+
+function aplicarFiltrosConVoz() {
+    const categoriaFiltro = document.getElementById('filtro-categoria').value;
+    const precioFiltro = document.getElementById('filtro-precio').value;
+    const productos = document.querySelectorAll('.producto-item');
+    
+    let productosVisibles = 0;
+    
+    productos.forEach(producto => {
+        let mostrar = true;
+        
+        if (categoriaFiltro && producto.dataset.categoria !== categoriaFiltro) {
+            mostrar = false;
+        }
+        
+        if (precioFiltro && mostrar) {
+            const precio = parseFloat(producto.dataset.precio);
+            const [min, max] = precioFiltro.split('-').map(p => p === '+' ? Infinity : parseFloat(p));
+            
+            if (precio < min || (max !== undefined && precio > max)) {
+                mostrar = false;
+            }
+        }
+        
+        producto.style.display = mostrar ? 'block' : 'none';
+        if (mostrar) productosVisibles++;
+    });
+    
+    // Actualizar contador visual
+    document.getElementById('contador-productos').textContent = `${productosVisibles} productos encontrados`;
+    
+    // Anunciar resultados con voz
+    hablarTexto(`Filtros aplicados. Se encontraron ${productosVisibles} productos`);
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtro-categoria').value = '';
+    document.getElementById('filtro-precio').value = '';
+    
+    document.querySelectorAll('.producto-item').forEach(producto => {
+        producto.style.display = 'block';
+    });
+    
+    const total = document.querySelectorAll('.producto-item').length;
+    document.getElementById('contador-productos').textContent = `${total} productos encontrados`;
+    
+    hablarTexto(`Filtros eliminados. Mostrando todos los ${total} productos`);
+}
+
+// Funciones del chat con voz
+
+function enviarMensajeConVoz() {
+    const input = document.getElementById('chat-input');
+    const mensaje = input.value.trim();
+    
+    if (!mensaje) return;
+    
+    // Agregar mensaje del usuario
+    const chatMessages = document.getElementById('chat-messages');
+    const mensajeUsuario = `
+        <div class="message usuario-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar bg-secondary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-user" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>Tú:</strong>
+                    <p class="mb-0">${mensaje}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.innerHTML += mensajeUsuario;
+    
+    // Procesar como comando de voz también
+    procesarComandoVoz(mensaje.toLowerCase());
+    
+    // Simular respuesta del asistente
+    setTimeout(() => {
+        const respuestaAsistente = generarRespuestaAsistenteVoz(mensaje);
+        const mensajeAsistente = `
+            <div class="message asistente-message mb-3">
+                <div class="d-flex align-items-start">
+                    <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-robot" aria-hidden="true"></i>
+                    </div>
+                    <div class="message-content">
+                        <strong>Asistente:</strong>
+                        <p class="mb-0">${respuestaAsistente}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.innerHTML += mensajeAsistente;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Leer respuesta en voz alta
+        hablarTexto(respuestaAsistente);
+    }, 1000);
+    
+    input.value = '';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function generarRespuestaAsistenteVoz(mensaje) {
+    const mensajeLower = mensaje.toLowerCase();
+    
+    if (mensajeLower.includes('precio') || mensajeLower.includes('costo') || mensajeLower.includes('cuánto')) {
+        return '💰 Los precios varían según el producto. Puedo leer todos los precios si dices "leer precios". También puedes filtrar por rango de precio usando los filtros.';
+    } else if (mensajeLower.includes('carrito') || mensajeLower.includes('compra') || mensajeLower.includes('comprar')) {
+        return '🛒 Para agregar al carrito: navega con Tab hasta un producto, presiona Enter para ver detalles, luego usa el botón "Agregar al carrito" o presiona la tecla C directamente en el producto.';
+    } else if (mensajeLower.includes('navegar') || mensajeLower.includes('cómo') || mensajeLower.includes('usar')) {
+        return '🎯 Navegación: Tab para moverse, Enter para seleccionar, Escape para cerrar. Atajos: Alt+V (voz), Alt+L (leer página), Alt+A (asistente), Alt+F (filtros). En productos: tecla C para agregar al carrito.';
+    } else if (mensajeLower.includes('leer') || mensajeLower.includes('productos')) {
+        return '📚 Puedo leer productos específicos, categorías, precios, o toda la página. Di "leer productos", "leer precios", o usa Alt+L para leer todo.';
+    } else if (mensajeLower.includes('stock') || mensajeLower.includes('disponible')) {
+        return '📦 Todos los productos muestran su stock. Los disponibles tienen badge verde, los agotados badge rojo. Puedo leer el stock de productos específicos.';
+    } else if (mensajeLower.includes('categoría') || mensajeLower.includes('filtro')) {
+        return '📂 Tenemos categorías como Electrónicos, Hogar, Ropa, Salud. Usa Alt+F para ir a filtros o di "productos electrónicos" para filtrar por voz.';
+    } else if (mensajeLower.includes('ayuda') || mensajeLower.includes('comandos')) {
+        return '🤝 Comandos de voz: "leer productos", "productos baratos", "productos electrónicos", "leer precios", "ayuda navegación". También respondo preguntas escritas.';
+    } else {
+        return '✨ Estoy aquí para ayudarte. Puedo leer productos, explicar navegación, ayudar con compras, o responder preguntas específicas. ¿Qué necesitas saber?';
+    }
+}
+
+function limpiarChatConVoz() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = `
+        <div class="message asistente-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-robot" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>Asistente:</strong>
+                    <p class="mb-0">¡Nueva conversación iniciada! ¿En qué puedo ayudarte hoy?</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    hablarTexto('Nueva conversación iniciada con el asistente de voz');
+}
+
+function activarEscuchaDirecta() {
+    if (reconocimientoVoz) {
+        reconocimientoVoz.start();
+        hablarTexto('Micrófono activado, puedes hablar ahora');
+    }
+}
+
+function actualizarEstadoVoz(estado) {
+    const statusElement = document.getElementById('status-texto');
+    if (statusElement) {
+        statusElement.textContent = estado;
+    }
+}
+
+function toggleVoz() {
+    vozHabilitada = !vozHabilitada;
+    document.getElementById('voz-habilitada').checked = vozHabilitada;
+    
+    if (vozHabilitada) {
+        hablarTexto('Voz activada');
+    } else {
+        speechSynthesis.cancel();
+    }
+}
+
+// Funciones de filtrado con voz
+function filtrarPorPrecio(rango) {
+    document.getElementById('filtro-precio').value = rango;
+    aplicarFiltrosConVoz();
+}
+
+function filtrarPorCategoria(categoria) {
+    const select = document.getElementById('filtro-categoria');
+    for (let option of select.options) {
+        if (option.text.includes(categoria)) {
+            select.value = option.value;
+            break;
+        }
+    }
+    aplicarFiltrosConVoz();
+}
+
+// CSS para indicadores de estado
+const style = document.createElement('style');
+style.textContent = `
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        animation: pulse 1s infinite;
+    }
+    
+    .status-indicator.active {
+        background-color: #28a745;
+    }
+    
+    .status-indicator.speaking {
+        background-color: #007bff;
+    }
+    
+    .status-indicator.error {
+        background-color: #dc3545;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .voz-control-container {
+        z-index: 1050;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- Incluir SweetAlert2 para notificaciones accesibles -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% endblock contenido %}

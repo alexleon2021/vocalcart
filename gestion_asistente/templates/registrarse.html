@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}
+    VOCALCART - Registro de Usuario
+{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'css/registro.css' %}">
+
+<div class="container vh-100 d-flex flex-column align-items-center justify-content-center register-container">
+    <div class="card shadow-lg rounded-3 border-0" style="max-width: 450px; width: 100%; animation: fadeIn 0.8s ease-in-out;">
+        <div class="card-body p-4 textoI" style="font-family: Lato;">
+            <form action="{% url 'registrarse' %}" method="POST" id="registerForm">
+                {% csrf_token %}
+                
+                <div class="text-center mb-4 logo-container">
+                    <img src="{% static 'imgs/vocalcart.jpg' %}" 
+                         alt="Logo de VOCALCART" 
+                         style="max-width: 120px; height: auto;">
+                    <h4 class="mt-3 mb-0" style="color: #198754; font-weight: bold;">Crear Cuenta</h4>
+                    <p class="text-muted small mb-3">Únete a VOCALCART</p>
+                </div>
+
+                <!-- Nombre de usuario -->
+                <div class="form-floating mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           name="username" 
+                           id="username" 
+                           placeholder="Nombre de usuario" 
+                           required
+                           minlength="3"
+                           maxlength="150"
+                           autocomplete="username">
+                    <label for="username">
+                        <i class="fas fa-user me-2"></i>Nombre de usuario
+                    </label>
+                    <div class="invalid-feedback">
+                        El nombre de usuario debe tener al menos 3 caracteres.
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-floating mb-3">
+                    <input type="email" 
+                           class="form-control" 
+                           name="email" 
+                           id="email" 
+                           placeholder="Correo electrónico" 
+                           required
+                           autocomplete="email">
+                    <label for="email">
+                        <i class="fas fa-envelope me-2"></i>Correo electrónico
+                    </label>
+                    <div class="invalid-feedback">
+                        Por favor ingresa un correo electrónico válido.
+                    </div>
+                </div>
+
+                <!-- Nombre -->
+                <div class="form-floating mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           name="first_name" 
+                           id="first_name" 
+                           placeholder="Nombre" 
+                           required
+                           maxlength="30"
+                           autocomplete="given-name">
+                    <label for="first_name">
+                        <i class="fas fa-id-card me-2"></i>Nombre
+                    </label>
+                    <div class="invalid-feedback">
+                        Por favor ingresa tu nombre.
+                    </div>
+                </div>
+
+                <!-- Apellido -->
+                <div class="form-floating mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           name="last_name" 
+                           id="last_name" 
+                           placeholder="Apellido" 
+                           required
+                           maxlength="30"
+                           autocomplete="family-name">
+                    <label for="last_name">
+                        <i class="fas fa-id-card me-2"></i>Apellido
+                    </label>
+                    <div class="invalid-feedback">
+                        Por favor ingresa tu apellido.
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-floating mb-3">
+                    <input type="password" 
+                           class="form-control" 
+                           name="password1" 
+                           id="password1" 
+                           placeholder="Contraseña" 
+                           required
+                           minlength="8"
+                           autocomplete="new-password">
+                    <label for="password1">
+                        <i class="fas fa-lock me-2"></i>Contraseña
+                    </label>
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <div class="form-text">
+                        <small class="text-muted">La contraseña debe tener al menos 8 caracteres.</small>
+                    </div>
+                    <div class="invalid-feedback" id="password1Feedback">
+                        La contraseña debe tener al menos 8 caracteres.
+                    </div>
+                </div>
+
+                <!-- Confirmar contraseña -->
+                <div class="form-floating mb-3">
+                    <input type="password" 
+                           class="form-control" 
+                           name="password2" 
+                           id="password2" 
+                           placeholder="Confirmar contraseña" 
+                           required
+                           minlength="8"
+                           autocomplete="new-password">
+                    <label for="password2">
+                        <i class="fas fa-lock me-2"></i>Confirmar contraseña
+                    </label>
+                    <div class="invalid-feedback" id="password2Feedback">
+                        Las contraseñas no coinciden.
+                    </div>
+                </div>
+
+                <!-- Términos y condiciones -->
+                <div class="form-check mb-3">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           id="terms" 
+                           name="terms" 
+                           required>
+                    <label class="form-check-label small" for="terms">
+                        Acepto los <a href="#" class="register-link">términos y condiciones</a> y la <a href="#" class="register-link">política de privacidad</a>
+                    </label>
+                    <div class="invalid-feedback">
+                        Debes aceptar los términos y condiciones.
+                    </div>
+                </div>
+
+                <!-- Botón de registro -->
+                <div class="d-grid gap-2 mb-3">
+                    <button type="submit" 
+                            class="btn btn-success btn-lg btn-register" 
+                            name="register" 
+                            id="submitBtn"
+                            style="font-family: Lato;">
+                        <i class="fas fa-user-plus me-2"></i> Crear cuenta
+                    </button>
+                </div>
+
+                <!-- Mensajes de error o éxito -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+                            {% if message.tags == 'error' %}
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% else %}
+                                <i class="fas fa-check-circle me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Mostrar errores del formulario -->
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en el formulario:</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+
+                <!-- Link para volver al login -->
+                <div class="text-center">
+                    <p class="small mb-0">
+                        ¿Ya tienes una cuenta? 
+                        <a href="{% url 'login' %}" class="register-link">
+                            <i class="fas fa-sign-in-alt me-1"></i>Iniciar sesión
+                        </a>
+                    </p>
+                </div>
+
+            </form>
+        </div>
+    </div> 
+    
+    <div class="text-center mt-3" style="color: white;">
+        UNEMI - VOCALCART &copy V0.0
+    </div>
+</div>
+
+<script>
+    // Validación mejorada y efectos interactivos
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registerForm');
+        const password1 = document.getElementById('password1');
+        const password2 = document.getElementById('password2');
+        const username = document.getElementById('username');
+        const email = document.getElementById('email');
+        const submitBtn = document.getElementById('submitBtn');
+        const passwordStrength = document.getElementById('passwordStrength');
+        
+        // Validación de contraseñas en tiempo real
+        function validatePasswords() {
+            const pass1 = password1.value;
+            const pass2 = password2.value;
+            
+            if (pass2 !== '' && pass1 !== pass2) {
+                password2.setCustomValidity('Las contraseñas no coinciden');
+                password2.classList.add('is-invalid');
+                password2.classList.remove('is-valid');
+            } else if (pass2 !== '' && pass1 === pass2 && pass1.length >= 8) {
+                password2.setCustomValidity('');
+                password2.classList.remove('is-invalid');
+                password2.classList.add('is-valid');
+            } else {
+                password2.classList.remove('is-invalid', 'is-valid');
+            }
+        }
+        
+        // Indicador de fuerza de contraseña
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let className = '';
+            
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            switch(strength) {
+                case 0:
+                case 1:
+                    className = 'password-weak';
+                    break;
+                case 2:
+                    className = 'password-medium';
+                    break;
+                case 3:
+                case 4:
+                    className = 'password-strong';
+                    break;
+                case 5:
+                    className = 'password-very-strong';
+                    break;
+            }
+            
+            passwordStrength.className = 'password-strength ' + className;
+        }
+        
+        // Validación de nombre de usuario
+        function validateUsername() {
+            const value = username.value;
+            if (value.length >= 3) {
+                username.classList.remove('is-invalid');
+                username.classList.add('is-valid');
+            } else if (value.length > 0) {
+                username.classList.add('is-invalid');
+                username.classList.remove('is-valid');
+            }
+        }
+        
+        // Validación de email
+        function validateEmail() {
+            const value = email.value;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (emailRegex.test(value)) {
+                email.classList.remove('is-invalid');
+                email.classList.add('is-valid');
+            } else if (value.length > 0) {
+                email.classList.add('is-invalid');
+                email.classList.remove('is-valid');
+            }
+        }
+        
+        // Event listeners
+        password1.addEventListener('input', function() {
+            const value = this.value;
+            checkPasswordStrength(value);
+            
+            if (value.length >= 8) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else if (value.length > 0) {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+            
+            validatePasswords();
+        });
+        
+        password2.addEventListener('input', validatePasswords);
+        username.addEventListener('input', validateUsername);
+        email.addEventListener('input', validateEmail);
+        
+        // Efecto de loading al enviar el formulario
+        form.addEventListener('submit', function(e) {
+            const isValid = form.checkValidity();
+            
+            if (isValid) {
+                submitBtn.classList.add('btn-loading');
+                submitBtn.disabled = true;
+                
+                // Simular un pequeño delay para mostrar el efecto
+                setTimeout(() => {
+                    // El formulario se enviará normalmente
+                }, 500);
+            }
+        });
+        
+        // Validación del formulario completo
+        form.addEventListener('input', function() {
+            const inputs = form.querySelectorAll('input[required]');
+            let allValid = true;
+            
+            inputs.forEach(input => {
+                if (!input.checkValidity()) {
+                    allValid = false;
+                }
+            });
+            
+            if (allValid && password1.value === password2.value) {
+                submitBtn.classList.add('pulse');
+            } else {
+                submitBtn.classList.remove('pulse');
+            }
+        });
+        
+        // Efecto de enfoque automático en el primer campo
+        username.focus();
+    });
+</script>
+{% endblock contenido %}

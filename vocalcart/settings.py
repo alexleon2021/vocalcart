@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'gestion_productos',
     'gestion_compras',
     'gestion_asistente',
+    'vocalcart'
 ]
 
 MIDDLEWARE = [
@@ -58,7 +59,7 @@ ROOT_URLCONF = 'vocalcart.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,13 +79,8 @@ WSGI_APPLICATION = 'vocalcart.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vocalcart',     
-        'USER': 'root',             
-        'PASSWORD': 'vocalcart',      
-        'HOST': 'localhost',             
-        'PORT': '3306',                  
-       
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
