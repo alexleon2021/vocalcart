@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from .models import producto, categoria
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from rest_framework import viewsets
+from .serializer import categoriaSerializer, productoSerializer
 
 def productos_lista(request):
     """
@@ -82,3 +84,10 @@ def agregar_carrito(request, producto_id):
             return JsonResponse({'error': 'Error al agregar al carrito'}, status=500)
     
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+class categoriaView(viewsets.ModelViewSet):
+    serializer_class = categoriaSerializer
+    queryset = categoria.objects.all() 
+class productoView(viewsets.ModelViewSet):
+    serializer_class = productoSerializer
+    queryset = producto.objects.all()

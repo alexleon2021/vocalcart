@@ -41,7 +41,9 @@ INSTALLED_APPS = [
     'gestion_productos',
     'gestion_compras',
     'gestion_asistente',
-    'vocalcart'
+    'vocalcart',
+    'rest_framework',
+    # 'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -78,9 +80,14 @@ WSGI_APPLICATION = 'vocalcart.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+     'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'vocalcart',     
+        'USER': 'root',             
+        'PASSWORD': 'vocalcart',      
+        'HOST': 'localhost',             
+        'PORT': '3306',                  
+       
     }
 }
 
@@ -122,7 +129,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        # o TokenAuthentication si usas token
+    ],
+}
 
 JAZZMIN_SETTINGS = {
     # title of the window (Will default to current_admin_site.site_title if absent or None)
