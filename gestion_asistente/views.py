@@ -4,6 +4,9 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django import forms
+from rest_framework import viewsets
+from .serializer import asistenteSerializer
+from .models import asistente
 
 # Formulario personalizado para registro
 class CustomUserCreationForm(UserCreationForm):
@@ -102,3 +105,8 @@ def registro(request):
         form = CustomUserCreationForm()
 
     return render(request, 'registrarse.html', {'form': form})
+
+class asistenteView(viewsets.ModelViewSet):
+    serializer_class = asistenteSerializer
+    queryset = asistente.objects.all() 
+
