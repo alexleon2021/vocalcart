@@ -14,5 +14,6 @@ urlpatterns = [
     path('', views.productos_lista, name='lista'),
     path('detalle/<int:producto_id>/', views.producto_detalle, name='detalle'),
     path('agregar-carrito/<int:producto_id>/', views.agregar_carrito, name='agregar_carrito'),
+
     path('', include(router.urls))
 ]
