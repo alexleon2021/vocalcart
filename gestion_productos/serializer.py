@@ -7,6 +7,8 @@ class categoriaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class productoSerializer(serializers.ModelSerializer):
+    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
+    
     class Meta:
         model = producto
         fields = '__all__'

@@ -2,27 +2,156 @@
 {% load static %}
 
 {% block contenido %}
+<!-- Anunciador para lectores de pantalla -->
+<div aria-live="assertive" aria-atomic="true" id="anunciador" class="sr-only"></div>
+<div aria-live="polite" aria-atomic="true" id="anunciador-suave" class="sr-only"></div>
+
+<!-- Control de Voz en Tiempo Real -->
+<div class="voz-control-container position-fixed top-0 end-0 m-3" style="z-index: 9999;">
+    <div class="card border-0 shadow-lg bg-primary text-white">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center mb-2">
+                <h2 class="h6 mb-0 me-3">Control de Voz</h2>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="voz-habilitada" checked>
+                    <label class="form-check-label text-white" for="voz-habilitada">
+                        Activado
+                    </label>
+                </div>
+            </div>
+            
+            <div class="btn-group w-100 mb-2" role="group" aria-label="Controles de voz">
+                <button type="button" 
+                        class="btn btn-success btn-sm" 
+                        id="btn-escuchar"
+                        aria-describedby="ayuda-escuchar">
+                    <i class="fas fa-microphone me-1" aria-hidden="true"></i>
+                    Escuchar
+                </button>
+                <button type="button" 
+                        class="btn btn-warning btn-sm" 
+                        id="btn-parar-voz"
+                        aria-describedby="ayuda-parar">
+                    <i class="fas fa-stop me-1" aria-hidden="true"></i>
+                    Parar
+                </button>
+                <button type="button" 
+                        class="btn btn-info btn-sm" 
+                        id="btn-repetir"
+                        aria-describedby="ayuda-repetir">
+                    <i class="fas fa-redo me-1" aria-hidden="true"></i>
+                    Repetir
+                </button>
+            </div>
+            
+            <div class="velocidad-voz mb-2">
+                <label for="velocidad-voz" class="form-label small text-white">Velocidad:</label>
+                <input type="range" 
+                       class="form-range" 
+                       id="velocidad-voz" 
+                       min="0.5" 
+                       max="2" 
+                       step="0.1" 
+                       value="1"
+                       aria-describedby="ayuda-velocidad">
+            </div>
+            
+            <div class="selector-voz mb-2">
+                <label for="selector-voz" class="form-label small text-white">
+                    <i class="fas fa-user-circle me-1"></i>Tipo de Voz:
+                </label>
+                <select id="selector-voz" class="form-select form-select-sm" aria-label="Seleccionar tipo de voz">
+                    <option value="0">🎙️ Voz Predeterminada</option>
+                    <option value="1">👩 Voz Femenina</option>
+                    <option value="2">👨 Voz Masculina</option>
+                </select>
+            </div>
+            
+            <div class="estado-voz">
+                <small class="text-white">
+                    <i class="fas fa-circle me-1" id="indicador-voz" aria-hidden="true"></i>
+                    <span id="estado-voz-texto">Voz lista</span>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="container vh-100 d-flex flex-column align-items-center justify-content-center">
 <!-- <h5 class="text-center mb-3"><b>S</b>istema de <b>A</b>dministración de <b>R</b>ecursos y <b>A</b>plicaciones</h5>-->
     <div class="card shadow-lg rounded-3 border-0" style="max-width: 400px; width: 100%; animation: fadeIn 0.8s ease-in-out;">
         <div class="card-body p-4 textoI" style="font-family: Lato;">
-        <form action="" method="POST">
+            
+            <!-- Botón del Asistente de Voz -->
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" 
+                        class="btn btn-primary btn-sm position-relative"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#asistente-modal"
+                        id="btn-asistente-voz"
+                        data-voz="Abrir asistente virtual de voz para ayuda en el inicio de sesión">
+                    <i class="fas fa-robot me-2" aria-hidden="true"></i>
+                    <span class="fw-bold">Asistente de Voz</span>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                        🔊
+                    </span>
+                </button>
+            </div>
+            
+        <form action="" method="POST" id="loginForm">
             {% csrf_token %}
             <div class="text-center mb-3">
                 <img src="{% static 'imgs/vocalcart.jpg' %}" 
                 alt="Logo de VOCALCART" 
-                style="max-width: 150px; height: auto;">
+                style="max-width: 150px; height: auto;"
+                data-voz="Logo de VOCALCART, tu tienda accesible">
+                <p class="text-muted small mt-2" data-voz="Formulario de inicio de sesión en VOCALCART">Inicia sesión en VOCALCART</p>
+            </div>
+            
+            <!-- Instrucciones de accesibilidad -->
+            <div class="alert alert-info small mb-3" role="alert" data-voz="Instrucciones: Usa Tab para navegar entre campos, Alt V para activar o desactivar voz, Alt A para abrir asistente">
+                🔊 <strong>Accesibilidad:</strong> Tab para navegar, Alt+V para voz, Alt+A para asistente
+            </div>
+            
+            <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control" 
+                       name="username" 
+                       id="username" 
+                       placeholder="Usuario" 
+                       required
+                       data-voz="Campo nombre de usuario. El asistente de voz puede ayudarte a llenar este campo"
+                       aria-describedby="ayuda-username">
+                <label for="username">
+                    <i class="fas fa-user me-2"></i>Usuario
+                </label>
+                <div id="ayuda-username" class="form-text">
+                    El asistente de voz puede ayudarte a llenar este campo
+                </div>
             </div>
             <div class="form-floating mb-3">
-                <input type="text" class="form-control" name="username" id="username" placeholder="Usuario" required>
-                <label for="username">Usuario</label>
-            </div>
-            <div class="form-floating mb-3">
-                <input type="password" class="form-control" name="password" id="password" placeholder="Contraseña" required>
-                <label for="password">Contraseña</label>
+                <input type="password" 
+                       class="form-control" 
+                       name="password" 
+                       id="password" 
+                       placeholder="Contraseña" 
+                       required
+                       data-voz="Campo contraseña. Por seguridad, este campo debe ser llenado manualmente"
+                       aria-describedby="ayuda-password">
+                <label for="password">
+                    <i class="fas fa-lock me-2"></i>Contraseña
+                </label>
+                <div id="ayuda-password" class="form-text text-warning">
+                    🔒 <strong>Por seguridad:</strong> Este campo NO usa asistente de voz. Debes ingresar tu contraseña manualmente.
+                </div>
             </div>
             <div class="d-grid gap-2 mb-3">
-                <button type="submit" class="btn btn-success btn-lg" name="login" style="font-family: Lato;">
+                <button type="submit" 
+                        class="btn btn-success btn-lg" 
+                        name="login" 
+                        id="submitBtn"
+                        style="font-family: Lato;"
+                        data-voz="Botón iniciar sesión. Al presionar este botón iniciarás sesión en VOCALCART">
                     <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión
                 </button>
             </div>
@@ -64,6 +193,830 @@
         UNEMI - VOCALCART &copy V0.0
     </div>
 </div>
+
+<!-- Modal de Asistente de Voz -->
+<div class="modal fade" id="asistente-modal" tabindex="-1" aria-labelledby="asistente-modal-title" aria-describedby="asistente-modal-descripcion">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h2 class="modal-title h4" id="asistente-modal-title" data-voz="Asistente virtual de voz para ayuda en el inicio de sesión">
+                    <i class="fas fa-robot me-3" aria-hidden="true"></i>
+                    🔊 Asistente de Voz - Inicio de Sesión
+                </h2>
+                <button type="button" 
+                        class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal" 
+                        aria-label="Cerrar asistente virtual"
+                        data-voz="Cerrar asistente virtual"></button>
+            </div>
+            <div class="modal-body">
+                <div id="asistente-modal-descripcion" class="mb-4">
+                    <div class="alert alert-info" data-voz="Bienvenido al asistente de voz para inicio de sesión. Puedo ayudarte a llenar el formulario">
+                        <h3 class="h5 mb-2">🎯 ¡Bienvenido al Asistente de Inicio de Sesión!</h3>
+                        <p class="mb-2">Soy tu asistente especializado para personas con discapacidad visual. Puedo:</p>
+                        <ul class="mb-2">
+                            <li>🗣️ Leer los campos del formulario</li>
+                            <li>✍️ Ayudarte a llenar el nombre de usuario con voz</li>
+                            <li>📝 Explicar el proceso de inicio de sesión</li>
+                            <li>🔒 Indicarte cuándo debes ingresar tu contraseña</li>
+                            <li>✅ Guiarte en el proceso de acceso</li>
+                        </ul>
+                        <p class="mb-0 text-danger"><strong>⚠️ Importante:</strong> Por seguridad, el campo de contraseña NO usa el asistente de voz y debe ser llenado manualmente.</p>
+                    </div>
+                </div>
+                
+                <!-- Controles de voz del asistente -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Comandos de voz disponibles para el inicio de sesión">🎤 Comandos de Voz:</h4>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success btn-sm text-start" onclick="leerCamposFormulario()">
+                                        "Leer campos del formulario"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para iniciar sesión necesitas tu nombre de usuario y contraseña. El nombre de usuario puede ser llenado con el asistente de voz, pero la contraseña debe ingresarse manualmente por seguridad.')">
+                                        "¿Cómo inicio sesión?"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="ayudaContraseña()">
+                                        "Ayuda con contraseña"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para navegar entre campos usa la tecla Tab. Para activar o desactivar la voz usa Alt más V. Para abrir este asistente usa Alt más A.')">
+                                        "¿Cómo navegar?"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Dime: mi usuario es, seguido de tu nombre de usuario. Por ejemplo: mi usuario es juan123')">
+                                        "¿Cómo llenar con voz?"
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Estado del reconocimiento de voz">🎯 Estado de Voz:</h4>
+                                <div id="reconocimiento-estado" class="mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="status-indicator me-2" id="status-voz"></div>
+                                        <span id="status-texto">Voz lista</span>
+                                    </div>
+                                    <button class="btn btn-primary w-100" id="btn-iniciar-reconocimiento" onclick="iniciarReconocimientoVoz()">
+                                        <i class="fas fa-microphone me-2"></i>
+                                        Iniciar Reconocimiento de Voz
+                                    </button>
+                                </div>
+                                <div class="small text-muted">
+                                    💡 Di comandos como: "mi usuario es..." para llenar el campo de usuario
+                                </div>
+                                
+                                <!-- Botón de ayuda para permisos -->
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-info btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#ayudaPermisos" aria-expanded="false">
+                                        <i class="fas fa-question-circle me-2"></i>
+                                        ¿Problemas con el micrófono?
+                                    </button>
+                                    <div class="collapse mt-2" id="ayudaPermisos">
+                                        <div class="card card-body bg-info bg-opacity-10">
+                                            <h6 class="text-info mb-2">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Cómo habilitar el micrófono:
+                                            </h6>
+                                            <ol class="small mb-0 ps-3">
+                                                <li class="mb-2">
+                                                    <strong>Chrome/Edge:</strong> Haz clic en el icono de candado 🔒 en la barra de direcciones
+                                                </li>
+                                                <li class="mb-2">
+                                                    <strong>Selecciona:</strong> "Permisos del sitio" o "Configuración del sitio"
+                                                </li>
+                                                <li class="mb-2">
+                                                    <strong>Micrófono:</strong> Cambia de "Bloqueado" a "Permitir"
+                                                </li>
+                                                <li class="mb-0">
+                                                    <strong>Recarga:</strong> Actualiza la página y prueba de nuevo
+                                                </li>
+                                            </ol>
+                                            <div class="alert alert-warning small mb-0 mt-2">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                <strong>Nota:</strong> Firefox tiene soporte limitado. Usa Chrome o Edge para mejor experiencia.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat del asistente -->
+                <div class="chat-container">
+                    <div class="chat-messages border rounded p-3 mb-3" 
+                         id="chat-messages" 
+                         role="log" 
+                         aria-live="polite" 
+                         aria-label="Conversación con el asistente"
+                         style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                        
+                        <div class="message asistente-message mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-robot" aria-hidden="true"></i>
+                                </div>
+                                <div class="message-content">
+                                    <strong>Asistente de Voz:</strong>
+                                    <p class="mb-2">¡Hola! Soy tu asistente para el inicio de sesión en VOCALCART. Estoy aquí para ayudarte a acceder a tu cuenta de forma accesible.</p>
+                                    <div class="small text-muted">
+                                        💡 <strong>Tip:</strong> Puedes usar comandos de voz o escribir. Di "ayuda" para más opciones.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Input para chat -->
+                    <div class="input-group">
+                        <label for="chat-input" class="sr-only">Escribir mensaje al asistente</label>
+                        <input type="text" 
+                               id="chat-input" 
+                               class="form-control form-control-lg" 
+                               placeholder="Escribe tu pregunta o usa comandos de voz..." 
+                               aria-describedby="ayuda-chat">
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                onclick="enviarMensajeConVoz()"
+                                aria-label="Enviar mensaje">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" 
+                                class="btn btn-success" 
+                                onclick="activarEscuchaDirecta()"
+                                aria-label="Activar micrófono">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="ayuda-chat" class="form-text">
+                        Presiona Enter para enviar o usa el micrófono para hablar directamente
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-voz="Cerrar asistente">
+                    <i class="fas fa-times me-2" aria-hidden="true"></i>
+                    Cerrar
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="limpiarChatConVoz()" data-voz="Iniciar nueva conversación">
+                    <i class="fas fa-refresh me-2" aria-hidden="true"></i>
+                    Nueva Conversación
+                </button>
+                <button type="button" class="btn btn-info" onclick="iniciarLoginPorVoz()" data-voz="Iniciar proceso de inicio de sesión completamente por voz">
+                    <i class="fas fa-microphone-alt me-2" aria-hidden="true"></i>
+                    🎙️ Iniciar Sesión por Voz
+                </button>
+                <button type="button" class="btn btn-success" onclick="leerCamposFormulario()" data-voz="Leer todos los campos del formulario">
+                    <i class="fas fa-volume-up me-2" aria-hidden="true"></i>
+                    Leer Formulario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales para funcionalidad de voz
+let vozHabilitada = true;
+let reconocimientoVoz = null;
+let vozActual = null;
+let vocesDisponibles = [];
+let velocidadVoz = 1;
+let ultimoTextoHablado = '';
+let escuchandoComandos = false;
+
+// Variables para el flujo de inicio de sesión por voz
+let modoLoginPorVoz = false;
+let datosLoginVoz = {
+    username: '',
+    password: ''
+};
+let pasoActualLogin = 0;
+
+// Inicialización de funciones de voz
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarVoz();
+    configurarAtajosTeclado();
+    configurarEventosVoz();
+    configurarCamposConVoz();
+    
+    // Anunciar carga de página después de un delay
+    setTimeout(() => {
+        if (vozHabilitada) {
+            hablarTexto('Página de inicio de sesión VOCALCART cargada. Formulario optimizado para discapacidad visual. Usa Alt más A para abrir el asistente de voz. Usa Tab para navegar entre campos. Recuerda que el campo de contraseña debe ser llenado manualmente por seguridad.');
+        }
+    }, 1500);
+});
+
+// Inicializar síntesis de voz
+function inicializarVoz() {
+    if ('speechSynthesis' in window) {
+        // Configurar voces en español
+        function cargarVoces() {
+            vocesDisponibles = speechSynthesis.getVoices();
+            const vocesEspanol = vocesDisponibles.filter(voz => voz.lang.startsWith('es'));
+            
+            if (vocesEspanol.length > 0) {
+                // Intentar encontrar diferentes tipos de voces
+                const vozFemenina = vocesEspanol.find(voz => 
+                    voz.name.toLowerCase().includes('female') || 
+                    voz.name.toLowerCase().includes('femenina') ||
+                    voz.name.toLowerCase().includes('woman') ||
+                    voz.name.toLowerCase().includes('zira') ||
+                    voz.name.toLowerCase().includes('helena') ||
+                    voz.name.toLowerCase().includes('monica')
+                );
+                
+                const vozMasculina = vocesEspanol.find(voz => 
+                    voz.name.toLowerCase().includes('male') || 
+                    voz.name.toLowerCase().includes('masculina') ||
+                    voz.name.toLowerCase().includes('man') ||
+                    voz.name.toLowerCase().includes('diego') ||
+                    voz.name.toLowerCase().includes('jorge')
+                );
+                
+                // Configurar array de voces disponibles
+                vocesDisponibles = [
+                    vocesEspanol[0], // Voz predeterminada
+                    vozFemenina || vocesEspanol[1] || vocesEspanol[0], // Voz femenina
+                    vozMasculina || vocesEspanol[2] || vocesEspanol[0]  // Voz masculina
+                ];
+                
+                vozActual = vocesDisponibles[0]; // Establecer la primera por defecto
+                
+                console.log('Voces cargadas:', vocesDisponibles.map(v => v.name));
+            }
+        }
+        
+        // Cargar voces
+        cargarVoces();
+        speechSynthesis.onvoiceschanged = cargarVoces;
+        
+        // Configurar reconocimiento de voz
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reconocimientoVoz = new SpeechRecognition();
+            reconocimientoVoz.continuous = true;
+            reconocimientoVoz.interimResults = true;
+            reconocimientoVoz.lang = 'es-ES';
+            
+            reconocimientoVoz.onresult = function(event) {
+                const ultima = event.results.length - 1;
+                const comando = event.results[ultima][0].transcript.toLowerCase().trim();
+                
+                if (event.results[ultima].isFinal) {
+                    procesarComandoVozLogin(comando);
+                }
+            };
+            
+            reconocimientoVoz.onerror = function(event) {
+                console.error('Error en reconocimiento de voz:', event.error);
+                
+                let mensajeError = '';
+                switch(event.error) {
+                    case 'not-allowed':
+                    case 'permission-denied':
+                        mensajeError = 'Permiso denegado. Por favor, permite el acceso al micrófono en tu navegador.';
+                        actualizarEstadoVoz('Permiso denegado');
+                        break;
+                    case 'no-speech':
+                        mensajeError = 'No se detectó voz. Intenta hablar más cerca del micrófono.';
+                        actualizarEstadoVoz('No se detectó voz');
+                        break;
+                    case 'audio-capture':
+                        mensajeError = 'No se detectó micrófono. Verifica que tu micrófono esté conectado.';
+                        actualizarEstadoVoz('Sin micrófono');
+                        break;
+                    case 'network':
+                        mensajeError = 'Error de red. Verifica tu conexión a internet.';
+                        actualizarEstadoVoz('Error de red');
+                        break;
+                    default:
+                        mensajeError = 'Error en reconocimiento de voz: ' + event.error;
+                        actualizarEstadoVoz('Error: ' + event.error);
+                }
+                
+                console.warn(mensajeError);
+                // No hablar el error para evitar loops
+            };
+            
+            reconocimientoVoz.onstart = function() {
+                actualizarEstadoVoz('Escuchando...');
+                escuchandoComandos = true;
+                const statusVoz = document.getElementById('status-voz');
+                if (statusVoz) {
+                    statusVoz.className = 'status-indicator active';
+                }
+            };
+            
+            reconocimientoVoz.onend = function() {
+                actualizarEstadoVoz('Voz lista');
+                escuchandoComandos = false;
+                const statusVoz = document.getElementById('status-voz');
+                if (statusVoz) {
+                    statusVoz.className = 'status-indicator';
+                }
+            };
+        }
+    } else {
+        console.warn('Síntesis de voz no soportada en este navegador');
+    }
+}
+
+// Función principal para hablar texto
+function hablarTexto(texto, interrumpir = true) {
+    if (!vozHabilitada || !texto) return;
+    
+    if (interrumpir) {
+        speechSynthesis.cancel();
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = velocidadVoz;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    if (vozActual) {
+        utterance.voice = vozActual;
+    }
+    
+    ultimoTextoHablado = texto;
+    
+    utterance.onstart = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-success';
+        document.getElementById('estado-voz-texto').textContent = 'Hablando...';
+    };
+    
+    utterance.onend = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-secondary';
+        document.getElementById('estado-voz-texto').textContent = 'Voz lista';
+    };
+    
+    speechSynthesis.speak(utterance);
+    
+    // Anunciar en región ARIA
+    const anunciador = document.getElementById('anunciador');
+    if (anunciador) {
+        anunciador.textContent = texto;
+        setTimeout(() => anunciador.textContent = '', 100);
+    }
+}
+
+// Configurar atajos de teclado
+function configurarAtajosTeclado() {
+    document.addEventListener('keydown', function(e) {
+        // Alt + V: Activar/Desactivar voz
+        if (e.altKey && e.key === 'v') {
+            e.preventDefault();
+            toggleVoz();
+        }
+        
+        // Alt + A: Abrir asistente
+        if (e.altKey && e.key === 'a') {
+            e.preventDefault();
+            document.getElementById('btn-asistente-voz').click();
+        }
+        
+        // Escape: Parar voz
+        if (e.key === 'Escape') {
+            speechSynthesis.cancel();
+        }
+        
+        // Enter en chat
+        if (e.key === 'Enter' && e.target.id === 'chat-input') {
+            e.preventDefault();
+            enviarMensajeConVoz();
+        }
+    });
+}
+
+// Configurar eventos específicos de voz
+function configurarEventosVoz() {
+    // Toggle de voz
+    document.getElementById('voz-habilitada').addEventListener('change', function() {
+        vozHabilitada = this.checked;
+        if (vozHabilitada) {
+            hablarTexto('Voz activada');
+        } else {
+            speechSynthesis.cancel();
+        }
+    });
+    
+    // Control de velocidad
+    document.getElementById('velocidad-voz').addEventListener('input', function() {
+        velocidadVoz = parseFloat(this.value);
+        hablarTexto(`Velocidad cambiada a ${Math.round(velocidadVoz * 100)} por ciento`, true);
+    });
+    
+    // Selector de voz
+    document.getElementById('selector-voz').addEventListener('change', function() {
+        const indiceVoz = parseInt(this.value);
+        if (vocesDisponibles[indiceVoz]) {
+            vozActual = vocesDisponibles[indiceVoz];
+            const tipoVoz = this.options[this.selectedIndex].text;
+            hablarTexto(`Voz cambiada a ${tipoVoz}. Esta es una prueba de la nueva voz.`);
+        }
+    });
+    
+    // Botones de control
+    document.getElementById('btn-escuchar').addEventListener('click', iniciarReconocimientoVoz);
+    document.getElementById('btn-parar-voz').addEventListener('click', function() {
+        speechSynthesis.cancel();
+        if (reconocimientoVoz && escuchandoComandos) {
+            reconocimientoVoz.stop();
+        }
+        hablarTexto('Voz detenida');
+    });
+    document.getElementById('btn-repetir').addEventListener('click', function() {
+        if (ultimoTextoHablado) {
+            hablarTexto(ultimoTextoHablado);
+        }
+    });
+}
+
+// Configurar campos del formulario con retroalimentación de voz
+function configurarCamposConVoz() {
+    // Agregar eventos de focus a todos los campos con data-voz
+    document.querySelectorAll('[data-voz]').forEach(elemento => {
+        elemento.addEventListener('focus', function() {
+            const textoVoz = this.getAttribute('data-voz');
+            if (textoVoz && vozHabilitada) {
+                hablarTexto(textoVoz);
+            }
+        });
+    });
+    
+    // Evento específico para campo de usuario
+    const campoUsuario = document.getElementById('username');
+    if (campoUsuario) {
+        campoUsuario.addEventListener('blur', function() {
+            if (this.value && vozHabilitada) {
+                hablarTexto(`Nombre de usuario ingresado: ${this.value}`);
+            }
+        });
+    }
+}
+
+// Procesar comandos de voz específicos para login
+function procesarComandoVozLogin(comando) {
+    console.log('Comando recibido:', comando);
+    
+    // Si estamos en modo login por voz, procesar el flujo
+    if (modoLoginPorVoz) {
+        procesarFlujoLoginPorVoz(comando);
+        return;
+    }
+    
+    // Comando para iniciar login por voz
+    if (comando.includes('iniciar sesión por voz') || comando.includes('login por voz') || comando.includes('entrar por voz')) {
+        iniciarLoginPorVoz();
+        return;
+    }
+    
+    // Comando para nombre de usuario
+    if (comando.includes('mi usuario es') || comando.includes('mi nombre de usuario es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi usuario es', 'mi nombre de usuario es']);
+        if (valorExtraido) {
+            document.getElementById('username').value = valorExtraido;
+            hablarTexto(`Usuario establecido como ${valorExtraido}. Ahora debes ingresar tu contraseña manualmente por seguridad.`);
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `He establecido tu usuario como "${valorExtraido}". Por favor, ingresa tu contraseña manualmente.`);
+        }
+    }
+    // Comandos informativos
+    else if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
+        leerCamposFormulario();
+    }
+    else if (comando.includes('contraseña') || comando.includes('password')) {
+        ayudaContraseña();
+    }
+    else if (comando.includes('leer') || comando.includes('campos')) {
+        leerCamposFormulario();
+    }
+}
+
+// Iniciar el proceso de login completamente por voz
+function iniciarLoginPorVoz() {
+    modoLoginPorVoz = true;
+    pasoActualLogin = 0;
+    datosLoginVoz = { username: '', password: '' };
+    
+    const mensaje = '🎙️ ¡Perfecto! Vamos a iniciar sesión usando solo tu voz. Te guiaré paso a paso. Primero, dime tu nombre de usuario. Por ejemplo: juan123';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+    
+    // Activar reconocimiento de voz automáticamente
+    if (reconocimientoVoz && !escuchandoComandos) {
+        setTimeout(() => {
+            reconocimientoVoz.start();
+        }, 3000);
+    }
+}
+
+// Procesar el flujo guiado de login por voz
+function procesarFlujoLoginPorVoz(comando) {
+    switch(pasoActualLogin) {
+        case 0: // Esperando nombre de usuario
+            if (comando.length > 2) {
+                datosLoginVoz.username = comando.trim();
+                document.getElementById('username').value = datosLoginVoz.username;
+                
+                const mensaje = `✅ Perfecto, usuario "${datosLoginVoz.username}" registrado. Ahora, dime tu contraseña. Habla con claridad.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', `Usuario: ${comando}`);
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualLogin = 1;
+            } else {
+                hablarTexto('No escuché bien tu nombre de usuario. Por favor, repítelo con claridad.');
+            }
+            break;
+            
+        case 1: // Esperando contraseña
+            if (comando.length > 2) {
+                datosLoginVoz.password = comando.trim();
+                document.getElementById('password').value = datosLoginVoz.password;
+                
+                const mensaje = `✅ Contraseña recibida. ¿Quieres iniciar sesión ahora? Di "sí" para confirmar o "no" para cancelar.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'Contraseña: [oculta por seguridad]');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualLogin = 2;
+            } else {
+                hablarTexto('No escuché bien tu contraseña. Por favor, repítela con claridad.');
+            }
+            break;
+            
+        case 2: // Confirmación
+            if (comando.includes('sí') || comando.includes('si') || comando.includes('confirmar') || comando.includes('aceptar')) {
+                const mensaje = '🎉 ¡Excelente! Iniciando sesión...';
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'Sí, confirmar');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                // Detener reconocimiento de voz
+                if (reconocimientoVoz && escuchandoComandos) {
+                    reconocimientoVoz.stop();
+                }
+                
+                // Enviar formulario
+                setTimeout(() => {
+                    document.getElementById('loginForm').submit();
+                }, 1500);
+                
+                modoLoginPorVoz = false;
+            } else if (comando.includes('no') || comando.includes('cancelar')) {
+                const mensaje = 'Inicio de sesión por voz cancelado. Puedes intentarlo de nuevo cuando quieras.';
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'No, cancelar');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                modoLoginPorVoz = false;
+                pasoActualLogin = 0;
+                datosLoginVoz = { username: '', password: '' };
+                
+                // Limpiar campos
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            } else {
+                hablarTexto('No entendí tu respuesta. Di "sí" para confirmar el inicio de sesión o "no" para cancelar.');
+            }
+            break;
+    }
+}
+
+// Extraer valor de un comando de voz
+function extraerValorComando(comando, palabrasClave) {
+    for (const palabra of palabrasClave) {
+        const indice = comando.indexOf(palabra);
+        if (indice !== -1) {
+            const valor = comando.substring(indice + palabra.length).trim();
+            return valor;
+        }
+    }
+    return null;
+}
+
+// Funciones del asistente
+function leerCamposFormulario() {
+    const mensaje = 'El formulario de inicio de sesión tiene dos campos: Nombre de usuario y Contraseña. Puedes llenar estos campos de tres formas: 1. Manualmente con el teclado. 2. Usando comandos de voz individuales como: mi usuario es juan123. 3. O puedes hacer el inicio de sesión completo por voz presionando el botón "Iniciar Sesión por Voz" donde yo te guiaré paso a paso.';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+}
+
+function ayudaContraseña() {
+    const mensaje = 'Puedes ingresar tu contraseña de dos formas: 1. Manualmente usando el teclado para mayor seguridad. 2. O usando el modo de inicio de sesión por voz completo, donde yo recibiré tu contraseña por voz de forma guiada. Ten en cuenta que al usar voz, otras personas podrían escuchar tu contraseña.';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+}
+
+function iniciarReconocimientoVoz() {
+    if (reconocimientoVoz) {
+        try {
+            // Verificar si ya está escuchando
+            if (escuchandoComandos) {
+                hablarTexto('El reconocimiento de voz ya está activo');
+                return;
+            }
+            
+            reconocimientoVoz.start();
+            hablarTexto('Micrófono activado, puedes hablar ahora. Di: mi usuario es, seguido de tu nombre de usuario.');
+        } catch (error) {
+            console.error('Error al iniciar reconocimiento:', error);
+            let mensaje = 'No se pudo iniciar el reconocimiento de voz. ';
+            
+            if (error.name === 'InvalidStateError') {
+                mensaje += 'El reconocimiento ya está activo.';
+            } else {
+                mensaje += 'Verifica que tu navegador tenga permisos de micrófono.';
+            }
+            
+            hablarTexto(mensaje);
+            actualizarEstadoVoz('Error al iniciar');
+        }
+    } else {
+        hablarTexto('El reconocimiento de voz no está disponible en tu navegador. Usa Chrome, Edge o Safari para esta función.');
+        actualizarEstadoVoz('No disponible');
+    }
+}
+
+function activarEscuchaDirecta() {
+    if (reconocimientoVoz) {
+        try {
+            if (escuchandoComandos) {
+                hablarTexto('El reconocimiento de voz ya está activo');
+                return;
+            }
+            reconocimientoVoz.start();
+            hablarTexto('Micrófono activado, puedes hablar ahora');
+        } catch (error) {
+            console.error('Error al activar escucha:', error);
+            hablarTexto('No se pudo activar el micrófono. Verifica los permisos.');
+            actualizarEstadoVoz('Error');
+        }
+    }
+}
+
+function actualizarEstadoVoz(estado) {
+    const statusElement = document.getElementById('status-texto');
+    if (statusElement) {
+        statusElement.textContent = estado;
+    }
+}
+
+function toggleVoz() {
+    vozHabilitada = !vozHabilitada;
+    document.getElementById('voz-habilitada').checked = vozHabilitada;
+    
+    if (vozHabilitada) {
+        hablarTexto('Voz activada');
+    } else {
+        speechSynthesis.cancel();
+    }
+}
+
+// Funciones del chat
+function enviarMensajeConVoz() {
+    const input = document.getElementById('chat-input');
+    const mensaje = input.value.trim();
+    
+    if (!mensaje) return;
+    
+    // Agregar mensaje del usuario
+    agregarMensajeChat('Usuario', mensaje);
+    
+    // Procesar como comando de voz también
+    procesarComandoVozLogin(mensaje.toLowerCase());
+    
+    // Simular respuesta del asistente si no fue procesado
+    setTimeout(() => {
+        const respuesta = generarRespuestaAsistenteLogin(mensaje);
+        if (respuesta) {
+            agregarMensajeChat('Asistente', respuesta);
+            hablarTexto(respuesta);
+        }
+    }, 500);
+    
+    input.value = '';
+}
+
+function generarRespuestaAsistenteLogin(mensaje) {
+    const mensajeLower = mensaje.toLowerCase();
+    
+    if (mensajeLower.includes('ayuda') || mensajeLower.includes('help')) {
+        return '✨ Puedo ayudarte con el inicio de sesión de varias formas: 1. Di "mi usuario es..." para llenar el campo manualmente. 2. Presiona el botón "Iniciar Sesión por Voz" para que te guíe en todo el proceso. 3. Llena el formulario con el teclado.';
+    } else if (mensajeLower.includes('hola') || mensajeLower.includes('buenos')) {
+        return '👋 ¡Hola! Bienvenido al asistente de inicio de sesión de VOCALCART. ¿Quieres iniciar sesión por voz? Presiona el botón "Iniciar Sesión por Voz" y te guiaré paso a paso.';
+    } else if (mensajeLower.includes('gracias')) {
+        return '😊 ¡De nada! Estoy aquí para ayudarte. Si necesitas algo más, solo dímelo.';
+    } else if (mensajeLower.includes('olvidé') || mensajeLower.includes('olvide')) {
+        return '🔐 Si olvidaste tu contraseña o usuario, contacta con el administrador del sistema. Por seguridad, no puedo ayudarte a recuperar esa información.';
+    } else if (mensajeLower.includes('voz') || mensajeLower.includes('hablar') || mensajeLower.includes('dictado')) {
+        return '🎙️ ¡Genial! Puedo ayudarte a iniciar sesión usando solo tu voz. Presiona el botón azul "Iniciar Sesión por Voz" y yo te guiaré en cada paso del proceso.';
+    }
+    
+    return null;
+}
+
+function agregarMensajeChat(remitente, mensaje) {
+    const chatMessages = document.getElementById('chat-messages');
+    const esAsistente = remitente === 'Asistente';
+    
+    const mensajeHTML = `
+        <div class="message ${esAsistente ? 'asistente' : 'usuario'}-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar ${esAsistente ? 'bg-primary' : 'bg-secondary'} text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-${esAsistente ? 'robot' : 'user'}" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>${remitente}:</strong>
+                    <p class="mb-0">${mensaje}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.innerHTML += mensajeHTML;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function limpiarChatConVoz() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = `
+        <div class="message asistente-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-robot" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>Asistente de Voz:</strong>
+                    <p class="mb-2">¡Hola! Soy tu asistente para el inicio de sesión en VOCALCART. Estoy aquí para ayudarte a acceder a tu cuenta de forma accesible.</p>
+                    <div class="small text-muted">
+                        💡 <strong>Tip:</strong> Puedes usar comandos de voz o escribir. Di "ayuda" para más opciones.
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    hablarTexto('Nueva conversación iniciada con el asistente de inicio de sesión');
+}
+
+// CSS para indicadores de estado
+const style = document.createElement('style');
+style.textContent = `
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        animation: pulse 1s infinite;
+    }
+    
+    .status-indicator.active {
+        background-color: #28a745;
+    }
+    
+    .status-indicator.speaking {
+        background-color: #007bff;
+    }
+    
+    .status-indicator.error {
+        background-color: #dc3545;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .voz-control-container {
+        z-index: 1050;
+    }
+    
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0,0,0,0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+`;
+document.head.appendChild(style);
+</script>
 
 <style>
     /* Estilos adicionales para las alertas de login */

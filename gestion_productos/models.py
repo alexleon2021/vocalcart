@@ -18,6 +18,7 @@ class producto(models.Model):
     stock = models.IntegerField(verbose_name='Cantidad en stock')
     precio = models.DecimalField(max_digits=20, decimal_places=2,verbose_name='Precio del producto')
     descripcion = models.TextField(blank=True,null=True,verbose_name='Descripción del producto')
+    imagen = models.URLField(max_length=500, blank=True, null=True, verbose_name='URL de la imagen del producto')
     estado = models.BooleanField(default=True,verbose_name='Estado del producto')
     categoria = models.ForeignKey(categoria,on_delete=models.CASCADE,verbose_name='Categoría del producto')
     fecha_creacion = models.DateTimeField(auto_now_add=True,verbose_name='Fecha de creación')

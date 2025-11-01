@@ -8,18 +8,116 @@
 {% block contenido %}
 <link rel="stylesheet" href="{% static 'css/registro.css' %}">
 
+<!-- Anunciador para lectores de pantalla -->
+<div aria-live="assertive" aria-atomic="true" id="anunciador" class="sr-only"></div>
+<div aria-live="polite" aria-atomic="true" id="anunciador-suave" class="sr-only"></div>
+
+<!-- Control de Voz en Tiempo Real -->
+<div class="voz-control-container position-fixed top-0 end-0 m-3" style="z-index: 9999;">
+    <div class="card border-0 shadow-lg bg-primary text-white">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center mb-2">
+                <h2 class="h6 mb-0 me-3">Control de Voz</h2>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="voz-habilitada" checked>
+                    <label class="form-check-label text-white" for="voz-habilitada">
+                        Activado
+                    </label>
+                </div>
+            </div>
+            
+            <div class="btn-group w-100 mb-2" role="group" aria-label="Controles de voz">
+                <button type="button" 
+                        class="btn btn-success btn-sm" 
+                        id="btn-escuchar"
+                        aria-describedby="ayuda-escuchar">
+                    <i class="fas fa-microphone me-1" aria-hidden="true"></i>
+                    Escuchar
+                </button>
+                <button type="button" 
+                        class="btn btn-warning btn-sm" 
+                        id="btn-parar-voz"
+                        aria-describedby="ayuda-parar">
+                    <i class="fas fa-stop me-1" aria-hidden="true"></i>
+                    Parar
+                </button>
+                <button type="button" 
+                        class="btn btn-info btn-sm" 
+                        id="btn-repetir"
+                        aria-describedby="ayuda-repetir">
+                    <i class="fas fa-redo me-1" aria-hidden="true"></i>
+                    Repetir
+                </button>
+            </div>
+            
+            <div class="velocidad-voz mb-2">
+                <label for="velocidad-voz" class="form-label small text-white">Velocidad:</label>
+                <input type="range" 
+                       class="form-range" 
+                       id="velocidad-voz" 
+                       min="0.5" 
+                       max="2" 
+                       step="0.1" 
+                       value="1"
+                       aria-describedby="ayuda-velocidad">
+            </div>
+            
+            <div class="selector-voz mb-2">
+                <label for="selector-voz" class="form-label small text-white">
+                    <i class="fas fa-user-circle me-1"></i>Tipo de Voz:
+                </label>
+                <select id="selector-voz" class="form-select form-select-sm" aria-label="Seleccionar tipo de voz">
+                    <option value="0">🎙️ Voz Predeterminada</option>
+                    <option value="1">👩 Voz Femenina</option>
+                    <option value="2">👨 Voz Masculina</option>
+                </select>
+            </div>
+            
+            <div class="estado-voz">
+                <small class="text-white">
+                    <i class="fas fa-circle me-1" id="indicador-voz" aria-hidden="true"></i>
+                    <span id="estado-voz-texto">Voz lista</span>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="container vh-100 d-flex flex-column align-items-center justify-content-center register-container">
     <div class="card shadow-lg rounded-3 border-0" style="max-width: 450px; width: 100%; animation: fadeIn 0.8s ease-in-out;">
         <div class="card-body p-4 textoI" style="font-family: Lato;">
+            
+            <!-- Botón del Asistente de Voz -->
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" 
+                        class="btn btn-primary btn-sm position-relative"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#asistente-modal"
+                        id="btn-asistente-voz"
+                        data-voz="Abrir asistente virtual de voz para ayuda en el registro">
+                    <i class="fas fa-robot me-2" aria-hidden="true"></i>
+                    <span class="fw-bold">Asistente de Voz</span>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                        🔊
+                    </span>
+                </button>
+            </div>
+
             <form action="{% url 'registrarse' %}" method="POST" id="registerForm">
                 {% csrf_token %}
                 
                 <div class="text-center mb-4 logo-container">
                     <img src="{% static 'imgs/vocalcart.jpg' %}" 
                          alt="Logo de VOCALCART" 
-                         style="max-width: 120px; height: auto;">
-                    <h4 class="mt-3 mb-0" style="color: #198754; font-weight: bold;">Crear Cuenta</h4>
-                    <p class="text-muted small mb-3">Únete a VOCALCART</p>
+                         style="max-width: 120px; height: auto;"
+                         data-voz="Logo de VOCALCART, tu tienda accesible">
+                    <h4 class="mt-3 mb-0" style="color: #198754; font-weight: bold;" data-voz="Formulario para crear cuenta en VOCALCART">Crear Cuenta</h4>
+                    <p class="text-muted small mb-3" data-voz="Únete a VOCALCART y disfruta de una experiencia de compra accesible">Únete a VOCALCART</p>
+                </div>
+                
+                <!-- Instrucciones de accesibilidad -->
+                <div class="alert alert-info small mb-3" role="alert" data-voz="Instrucciones: Usa Tab para navegar entre campos, Alt V para activar o desactivar voz, Alt A para abrir asistente">
+                    🔊 <strong>Accesibilidad:</strong> Tab para navegar, Alt+V para voz, Alt+A para asistente
                 </div>
 
                 <!-- Nombre de usuario -->
@@ -32,12 +130,17 @@
                            required
                            minlength="3"
                            maxlength="150"
-                           autocomplete="username">
+                           autocomplete="username"
+                           data-voz="Campo nombre de usuario, mínimo 3 caracteres"
+                           aria-describedby="ayuda-username">
                     <label for="username">
                         <i class="fas fa-user me-2"></i>Nombre de usuario
                     </label>
                     <div class="invalid-feedback">
                         El nombre de usuario debe tener al menos 3 caracteres.
+                    </div>
+                    <div id="ayuda-username" class="form-text">
+                        El asistente de voz puede ayudarte a llenar este campo
                     </div>
                 </div>
 
@@ -49,12 +152,17 @@
                            id="email" 
                            placeholder="Correo electrónico" 
                            required
-                           autocomplete="email">
+                           autocomplete="email"
+                           data-voz="Campo correo electrónico"
+                           aria-describedby="ayuda-email">
                     <label for="email">
                         <i class="fas fa-envelope me-2"></i>Correo electrónico
                     </label>
                     <div class="invalid-feedback">
                         Por favor ingresa un correo electrónico válido.
+                    </div>
+                    <div id="ayuda-email" class="form-text">
+                        El asistente de voz puede ayudarte a llenar este campo
                     </div>
                 </div>
 
@@ -67,12 +175,17 @@
                            placeholder="Nombre" 
                            required
                            maxlength="30"
-                           autocomplete="given-name">
+                           autocomplete="given-name"
+                           data-voz="Campo nombre"
+                           aria-describedby="ayuda-firstname">
                     <label for="first_name">
                         <i class="fas fa-id-card me-2"></i>Nombre
                     </label>
                     <div class="invalid-feedback">
                         Por favor ingresa tu nombre.
+                    </div>
+                    <div id="ayuda-firstname" class="form-text">
+                        El asistente de voz puede ayudarte a llenar este campo
                     </div>
                 </div>
 
@@ -85,12 +198,17 @@
                            placeholder="Apellido" 
                            required
                            maxlength="30"
-                           autocomplete="family-name">
+                           autocomplete="family-name"
+                           data-voz="Campo apellido"
+                           aria-describedby="ayuda-lastname">
                     <label for="last_name">
                         <i class="fas fa-id-card me-2"></i>Apellido
                     </label>
                     <div class="invalid-feedback">
                         Por favor ingresa tu apellido.
+                    </div>
+                    <div id="ayuda-lastname" class="form-text">
+                        El asistente de voz puede ayudarte a llenar este campo
                     </div>
                 </div>
 
@@ -103,7 +221,9 @@
                            placeholder="Contraseña" 
                            required
                            minlength="8"
-                           autocomplete="new-password">
+                           autocomplete="new-password"
+                           data-voz="Campo contraseña, mínimo 8 caracteres. Por seguridad, este campo debe ser llenado manualmente"
+                           aria-describedby="ayuda-password1">
                     <label for="password1">
                         <i class="fas fa-lock me-2"></i>Contraseña
                     </label>
@@ -113,6 +233,9 @@
                     </div>
                     <div class="invalid-feedback" id="password1Feedback">
                         La contraseña debe tener al menos 8 caracteres.
+                    </div>
+                    <div id="ayuda-password1" class="form-text text-warning">
+                        🔒 <strong>Por seguridad:</strong> Este campo NO usa asistente de voz. Debes ingresar tu contraseña manualmente.
                     </div>
                 </div>
 
@@ -125,12 +248,17 @@
                            placeholder="Confirmar contraseña" 
                            required
                            minlength="8"
-                           autocomplete="new-password">
+                           autocomplete="new-password"
+                           data-voz="Campo confirmar contraseña. Por seguridad, este campo debe ser llenado manualmente"
+                           aria-describedby="ayuda-password2">
                     <label for="password2">
                         <i class="fas fa-lock me-2"></i>Confirmar contraseña
                     </label>
                     <div class="invalid-feedback" id="password2Feedback">
                         Las contraseñas no coinciden.
+                    </div>
+                    <div id="ayuda-password2" class="form-text text-warning">
+                        🔒 <strong>Por seguridad:</strong> Este campo NO usa asistente de voz. Debes confirmar tu contraseña manualmente.
                     </div>
                 </div>
 
@@ -140,7 +268,8 @@
                            type="checkbox" 
                            id="terms" 
                            name="terms" 
-                           required>
+                           required
+                           data-voz="Casilla de aceptación de términos y condiciones">
                     <label class="form-check-label small" for="terms">
                         Acepto los <a href="#" class="register-link">términos y condiciones</a> y la <a href="#" class="register-link">política de privacidad</a>
                     </label>
@@ -155,7 +284,8 @@
                             class="btn btn-success btn-lg btn-register" 
                             name="register" 
                             id="submitBtn"
-                            style="font-family: Lato;">
+                            style="font-family: Lato;"
+                            data-voz="Botón crear cuenta. Al presionar este botón se confirmará tu registro">
                         <i class="fas fa-user-plus me-2"></i> Crear cuenta
                     </button>
                 </div>
@@ -210,147 +340,1103 @@
     </div>
 </div>
 
-<script>
-    // Validación mejorada y efectos interactivos
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('registerForm');
-        const password1 = document.getElementById('password1');
-        const password2 = document.getElementById('password2');
-        const username = document.getElementById('username');
-        const email = document.getElementById('email');
-        const submitBtn = document.getElementById('submitBtn');
-        const passwordStrength = document.getElementById('passwordStrength');
-        
-        // Validación de contraseñas en tiempo real
-        function validatePasswords() {
-            const pass1 = password1.value;
-            const pass2 = password2.value;
-            
-            if (pass2 !== '' && pass1 !== pass2) {
-                password2.setCustomValidity('Las contraseñas no coinciden');
-                password2.classList.add('is-invalid');
-                password2.classList.remove('is-valid');
-            } else if (pass2 !== '' && pass1 === pass2 && pass1.length >= 8) {
-                password2.setCustomValidity('');
-                password2.classList.remove('is-invalid');
-                password2.classList.add('is-valid');
-            } else {
-                password2.classList.remove('is-invalid', 'is-valid');
-            }
-        }
-        
-        // Indicador de fuerza de contraseña
-        function checkPasswordStrength(password) {
-            let strength = 0;
-            let className = '';
-            
-            if (password.length >= 8) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            
-            switch(strength) {
-                case 0:
-                case 1:
-                    className = 'password-weak';
-                    break;
-                case 2:
-                    className = 'password-medium';
-                    break;
-                case 3:
-                case 4:
-                    className = 'password-strong';
-                    break;
-                case 5:
-                    className = 'password-very-strong';
-                    break;
-            }
-            
-            passwordStrength.className = 'password-strength ' + className;
-        }
-        
-        // Validación de nombre de usuario
-        function validateUsername() {
-            const value = username.value;
-            if (value.length >= 3) {
-                username.classList.remove('is-invalid');
-                username.classList.add('is-valid');
-            } else if (value.length > 0) {
-                username.classList.add('is-invalid');
-                username.classList.remove('is-valid');
-            }
-        }
-        
-        // Validación de email
-        function validateEmail() {
-            const value = email.value;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (emailRegex.test(value)) {
-                email.classList.remove('is-invalid');
-                email.classList.add('is-valid');
-            } else if (value.length > 0) {
-                email.classList.add('is-invalid');
-                email.classList.remove('is-valid');
-            }
-        }
-        
-        // Event listeners
-        password1.addEventListener('input', function() {
-            const value = this.value;
-            checkPasswordStrength(value);
-            
-            if (value.length >= 8) {
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
-            } else if (value.length > 0) {
-                this.classList.add('is-invalid');
-                this.classList.remove('is-valid');
-            }
-            
-            validatePasswords();
-        });
-        
-        password2.addEventListener('input', validatePasswords);
-        username.addEventListener('input', validateUsername);
-        email.addEventListener('input', validateEmail);
-        
-        // Efecto de loading al enviar el formulario
-        form.addEventListener('submit', function(e) {
-            const isValid = form.checkValidity();
-            
-            if (isValid) {
-                submitBtn.classList.add('btn-loading');
-                submitBtn.disabled = true;
+<!-- Modal de Asistente de Voz -->
+<div class="modal fade" id="asistente-modal" tabindex="-1" aria-labelledby="asistente-modal-title" aria-describedby="asistente-modal-descripcion">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h2 class="modal-title h4" id="asistente-modal-title" data-voz="Asistente virtual de voz para ayuda en el registro">
+                    <i class="fas fa-robot me-3" aria-hidden="true"></i>
+                    🔊 Asistente de Voz - Registro
+                </h2>
+                <button type="button" 
+                        class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal" 
+                        aria-label="Cerrar asistente virtual"
+                        data-voz="Cerrar asistente virtual"></button>
+            </div>
+            <div class="modal-body">
+                <div id="asistente-modal-descripcion" class="mb-4">
+                    <div class="alert alert-info" data-voz="Bienvenido al asistente de voz para registro. Puedo ayudarte a llenar los campos del formulario">
+                        <h3 class="h5 mb-2">🎯 ¡Bienvenido al Asistente de Registro!</h3>
+                        <p class="mb-2">Soy tu asistente especializado para personas con discapacidad visual. Puedo:</p>
+                        <ul class="mb-2">
+                            <li>🗣️ Leer los campos del formulario</li>
+                            <li>✍️ Ayudarte a llenar el formulario con voz</li>
+                            <li>📝 Explicar los requisitos de cada campo</li>
+                            <li>🔒 Indicarte cuándo debes ingresar tu contraseña</li>
+                            <li>✅ Confirmar tu registro</li>
+                        </ul>
+                        <p class="mb-0 text-danger"><strong>⚠️ Importante:</strong> Por seguridad, los campos de contraseña NO usan el asistente de voz y deben ser llenados manualmente.</p>
+                    </div>
+                </div>
                 
-                // Simular un pequeño delay para mostrar el efecto
-                setTimeout(() => {
-                    // El formulario se enviará normalmente
-                }, 500);
+                <!-- Controles de voz del asistente -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Comandos de voz disponibles para el registro">🎤 Comandos de Voz:</h4>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success btn-sm text-start" onclick="leerCamposFormulario()">
+                                        "Leer campos del formulario"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="leerRequisitos()">
+                                        "¿Qué necesito para registrarme?"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="ayudaContraseña()">
+                                        "Ayuda con contraseña"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para navegar entre campos usa la tecla Tab. Para activar o desactivar la voz usa Alt más V. Para abrir este asistente usa Alt más A.')">
+                                        "¿Cómo navegar?"
+                                    </button>
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Dime: mi nombre de usuario es, seguido del nombre que deseas. Por ejemplo: mi nombre de usuario es juan123')">
+                                        "¿Cómo llenar con voz?"
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h4 class="h6 mb-3" data-voz="Estado del reconocimiento de voz">🎯 Estado de Voz:</h4>
+                                <div id="reconocimiento-estado" class="mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="status-indicator me-2" id="status-voz"></div>
+                                        <span id="status-texto">Voz lista</span>
+                                    </div>
+                                    <button class="btn btn-primary w-100" id="btn-iniciar-reconocimiento" onclick="iniciarReconocimientoVoz()">
+                                        <i class="fas fa-microphone me-2"></i>
+                                        Iniciar Reconocimiento de Voz
+                                    </button>
+                                </div>
+                                <div class="small text-muted">
+                                    💡 Di comandos como: "mi nombre de usuario es...", "mi email es...", "mi nombre es..."
+                                </div>
+                                
+                                <!-- Botón de ayuda para permisos -->
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-info btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#ayudaPermisos" aria-expanded="false">
+                                        <i class="fas fa-question-circle me-2"></i>
+                                        ¿Problemas con el micrófono?
+                                    </button>
+                                    <div class="collapse mt-2" id="ayudaPermisos">
+                                        <div class="card card-body bg-info bg-opacity-10">
+                                            <h6 class="text-info mb-2">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Cómo habilitar el micrófono:
+                                            </h6>
+                                            <ol class="small mb-0 ps-3">
+                                                <li class="mb-2">
+                                                    <strong>Chrome/Edge:</strong> Haz clic en el icono de candado 🔒 en la barra de direcciones
+                                                </li>
+                                                <li class="mb-2">
+                                                    <strong>Selecciona:</strong> "Permisos del sitio" o "Configuración del sitio"
+                                                </li>
+                                                <li class="mb-2">
+                                                    <strong>Micrófono:</strong> Cambia de "Bloqueado" a "Permitir"
+                                                </li>
+                                                <li class="mb-0">
+                                                    <strong>Recarga:</strong> Actualiza la página y prueba de nuevo
+                                                </li>
+                                            </ol>
+                                            <div class="alert alert-warning small mb-0 mt-2">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                <strong>Nota:</strong> Firefox tiene soporte limitado. Usa Chrome o Edge para mejor experiencia.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat del asistente -->
+                <div class="chat-container">
+                    <div class="chat-messages border rounded p-3 mb-3" 
+                         id="chat-messages" 
+                         role="log" 
+                         aria-live="polite" 
+                         aria-label="Conversación con el asistente"
+                         style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                        
+                        <div class="message asistente-message mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-robot" aria-hidden="true"></i>
+                                </div>
+                                <div class="message-content">
+                                    <strong>Asistente de Voz:</strong>
+                                    <p class="mb-2">¡Hola! Soy tu asistente para el registro en VOCALCART. Estoy aquí para ayudarte a crear tu cuenta de forma accesible.</p>
+                                    <div class="small text-muted">
+                                        💡 <strong>Tip:</strong> Puedes usar comandos de voz o escribir. Di "ayuda" para más opciones.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Input para chat -->
+                    <div class="input-group">
+                        <label for="chat-input" class="sr-only">Escribir mensaje al asistente</label>
+                        <input type="text" 
+                               id="chat-input" 
+                               class="form-control form-control-lg" 
+                               placeholder="Escribe tu pregunta o usa comandos de voz..." 
+                               aria-describedby="ayuda-chat">
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                onclick="enviarMensajeConVoz()"
+                                aria-label="Enviar mensaje">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" 
+                                class="btn btn-success" 
+                                onclick="activarEscuchaDirecta()"
+                                aria-label="Activar micrófono">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="ayuda-chat" class="form-text">
+                        Presiona Enter para enviar o usa el micrófono para hablar directamente
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-voz="Cerrar asistente">
+                    <i class="fas fa-times me-2" aria-hidden="true"></i>
+                    Cerrar
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="limpiarChatConVoz()" data-voz="Iniciar nueva conversación">
+                    <i class="fas fa-refresh me-2" aria-hidden="true"></i>
+                    Nueva Conversación
+                </button>
+                <button type="button" class="btn btn-info" onclick="iniciarRegistroPorVoz()" data-voz="Iniciar proceso de registro completamente por voz">
+                    <i class="fas fa-microphone-alt me-2" aria-hidden="true"></i>
+                    🎙️ Registrarse por Voz
+                </button>
+                <button type="button" class="btn btn-success" onclick="leerCamposFormulario()" data-voz="Leer todos los campos del formulario">
+                    <i class="fas fa-volume-up me-2" aria-hidden="true"></i>
+                    Leer Formulario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales para funcionalidad de voz
+let vozHabilitada = true;
+let reconocimientoVoz = null;
+let vozActual = null;
+let vocesDisponibles = [];
+let velocidadVoz = 1;
+let ultimoTextoHablado = '';
+let escuchandoComandos = false;
+
+// Variables para el flujo de registro por voz
+let modoRegistroPorVoz = false;
+let datosRegistroVoz = {
+    username: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    password1: '',
+    password2: ''
+};
+let pasoActualRegistro = 0;
+
+// Inicialización de funciones de voz
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarVoz();
+    configurarAtajosTeclado();
+    configurarEventosVoz();
+    configurarCamposConVoz();
+    
+    // Anunciar carga de página después de un delay
+    setTimeout(() => {
+        if (vozHabilitada) {
+            hablarTexto('Página de registro VOCALCART cargada. Formulario optimizado para discapacidad visual. Usa Alt más A para abrir el asistente de voz. Usa Tab para navegar entre campos. Recuerda que los campos de contraseña deben ser llenados manualmente por seguridad.');
+        }
+    }, 1500);
+    
+    // Mantener la validación original del formulario
+    inicializarValidacionFormulario();
+});
+
+// Inicializar síntesis de voz
+function inicializarVoz() {
+    if ('speechSynthesis' in window) {
+        // Configurar voces en español
+        function cargarVoces() {
+            vocesDisponibles = speechSynthesis.getVoices();
+            const vocesEspanol = vocesDisponibles.filter(voz => voz.lang.startsWith('es'));
+            
+            if (vocesEspanol.length > 0) {
+                // Intentar encontrar diferentes tipos de voces
+                const vozFemenina = vocesEspanol.find(voz => 
+                    voz.name.toLowerCase().includes('female') || 
+                    voz.name.toLowerCase().includes('femenina') ||
+                    voz.name.toLowerCase().includes('woman') ||
+                    voz.name.toLowerCase().includes('zira') ||
+                    voz.name.toLowerCase().includes('helena') ||
+                    voz.name.toLowerCase().includes('monica')
+                );
+                
+                const vozMasculina = vocesEspanol.find(voz => 
+                    voz.name.toLowerCase().includes('male') || 
+                    voz.name.toLowerCase().includes('masculina') ||
+                    voz.name.toLowerCase().includes('man') ||
+                    voz.name.toLowerCase().includes('diego') ||
+                    voz.name.toLowerCase().includes('jorge')
+                );
+                
+                // Configurar array de voces disponibles
+                vocesDisponibles = [
+                    vocesEspanol[0], // Voz predeterminada
+                    vozFemenina || vocesEspanol[1] || vocesEspanol[0], // Voz femenina
+                    vozMasculina || vocesEspanol[2] || vocesEspanol[0]  // Voz masculina
+                ];
+                
+                vozActual = vocesDisponibles[0]; // Establecer la primera por defecto
+                
+                console.log('Voces cargadas:', vocesDisponibles.map(v => v.name));
+            }
+        }
+        
+        // Cargar voces
+        cargarVoces();
+        speechSynthesis.onvoiceschanged = cargarVoces;
+        
+        // Configurar reconocimiento de voz
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reconocimientoVoz = new SpeechRecognition();
+            reconocimientoVoz.continuous = true;
+            reconocimientoVoz.interimResults = true;
+            reconocimientoVoz.lang = 'es-ES';
+            
+            reconocimientoVoz.onresult = function(event) {
+                const ultima = event.results.length - 1;
+                const comando = event.results[ultima][0].transcript.toLowerCase().trim();
+                
+                if (event.results[ultima].isFinal) {
+                    procesarComandoVozRegistro(comando);
+                }
+            };
+            
+            reconocimientoVoz.onerror = function(event) {
+                console.error('Error en reconocimiento de voz:', event.error);
+                
+                let mensajeError = '';
+                switch(event.error) {
+                    case 'not-allowed':
+                    case 'permission-denied':
+                        mensajeError = 'Permiso denegado. Por favor, permite el acceso al micrófono en tu navegador.';
+                        actualizarEstadoVoz('Permiso denegado');
+                        break;
+                    case 'no-speech':
+                        mensajeError = 'No se detectó voz. Intenta hablar más cerca del micrófono.';
+                        actualizarEstadoVoz('No se detectó voz');
+                        break;
+                    case 'audio-capture':
+                        mensajeError = 'No se detectó micrófono. Verifica que tu micrófono esté conectado.';
+                        actualizarEstadoVoz('Sin micrófono');
+                        break;
+                    case 'network':
+                        mensajeError = 'Error de red. Verifica tu conexión a internet.';
+                        actualizarEstadoVoz('Error de red');
+                        break;
+                    default:
+                        mensajeError = 'Error en reconocimiento de voz: ' + event.error;
+                        actualizarEstadoVoz('Error: ' + event.error);
+                }
+                
+                console.warn(mensajeError);
+                // No hablar el error para evitar loops
+            };
+            
+            reconocimientoVoz.onstart = function() {
+                actualizarEstadoVoz('Escuchando...');
+                escuchandoComandos = true;
+                const statusVoz = document.getElementById('status-voz');
+                if (statusVoz) {
+                    statusVoz.className = 'status-indicator active';
+                }
+            };
+            
+            reconocimientoVoz.onend = function() {
+                actualizarEstadoVoz('Voz lista');
+                escuchandoComandos = false;
+                const statusVoz = document.getElementById('status-voz');
+                if (statusVoz) {
+                    statusVoz.className = 'status-indicator';
+                }
+            };
+        }
+    } else {
+        console.warn('Síntesis de voz no soportada en este navegador');
+    }
+}
+
+// Función principal para hablar texto
+function hablarTexto(texto, interrumpir = true) {
+    if (!vozHabilitada || !texto) return;
+    
+    if (interrumpir) {
+        speechSynthesis.cancel();
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = velocidadVoz;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    if (vozActual) {
+        utterance.voice = vozActual;
+    }
+    
+    ultimoTextoHablado = texto;
+    
+    utterance.onstart = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-success';
+        document.getElementById('estado-voz-texto').textContent = 'Hablando...';
+    };
+    
+    utterance.onend = function() {
+        document.getElementById('indicador-voz').className = 'fas fa-circle text-secondary';
+        document.getElementById('estado-voz-texto').textContent = 'Voz lista';
+    };
+    
+    speechSynthesis.speak(utterance);
+    
+    // Anunciar en región ARIA
+    const anunciador = document.getElementById('anunciador');
+    if (anunciador) {
+        anunciador.textContent = texto;
+        setTimeout(() => anunciador.textContent = '', 100);
+    }
+}
+
+// Configurar atajos de teclado
+function configurarAtajosTeclado() {
+    document.addEventListener('keydown', function(e) {
+        // Alt + V: Activar/Desactivar voz
+        if (e.altKey && e.key === 'v') {
+            e.preventDefault();
+            toggleVoz();
+        }
+        
+        // Alt + A: Abrir asistente
+        if (e.altKey && e.key === 'a') {
+            e.preventDefault();
+            document.getElementById('btn-asistente-voz').click();
+        }
+        
+        // Escape: Parar voz
+        if (e.key === 'Escape') {
+            speechSynthesis.cancel();
+        }
+        
+        // Enter en chat
+        if (e.key === 'Enter' && e.target.id === 'chat-input') {
+            e.preventDefault();
+            enviarMensajeConVoz();
+        }
+    });
+}
+
+// Configurar eventos específicos de voz
+function configurarEventosVoz() {
+    // Toggle de voz
+    document.getElementById('voz-habilitada').addEventListener('change', function() {
+        vozHabilitada = this.checked;
+        if (vozHabilitada) {
+            hablarTexto('Voz activada');
+        } else {
+            speechSynthesis.cancel();
+        }
+    });
+    
+    // Control de velocidad
+    document.getElementById('velocidad-voz').addEventListener('input', function() {
+        velocidadVoz = parseFloat(this.value);
+        hablarTexto(`Velocidad cambiada a ${Math.round(velocidadVoz * 100)} por ciento`, true);
+    });
+    
+    // Selector de voz
+    document.getElementById('selector-voz').addEventListener('change', function() {
+        const indiceVoz = parseInt(this.value);
+        if (vocesDisponibles[indiceVoz]) {
+            vozActual = vocesDisponibles[indiceVoz];
+            const tipoVoz = this.options[this.selectedIndex].text;
+            hablarTexto(`Voz cambiada a ${tipoVoz}. Esta es una prueba de la nueva voz.`);
+        }
+    });
+    
+    // Botones de control
+    document.getElementById('btn-escuchar').addEventListener('click', iniciarReconocimientoVoz);
+    document.getElementById('btn-parar-voz').addEventListener('click', function() {
+        speechSynthesis.cancel();
+        if (reconocimientoVoz && escuchandoComandos) {
+            reconocimientoVoz.stop();
+        }
+        hablarTexto('Voz detenida');
+    });
+    document.getElementById('btn-repetir').addEventListener('click', function() {
+        if (ultimoTextoHablado) {
+            hablarTexto(ultimoTextoHablado);
+        }
+    });
+}
+
+// Configurar campos del formulario con retroalimentación de voz
+function configurarCamposConVoz() {
+    // Agregar eventos de focus y blur a todos los campos con data-voz
+    document.querySelectorAll('[data-voz]').forEach(elemento => {
+        elemento.addEventListener('focus', function() {
+            const textoVoz = this.getAttribute('data-voz');
+            if (textoVoz && vozHabilitada) {
+                hablarTexto(textoVoz);
             }
         });
-        
-        // Validación del formulario completo
-        form.addEventListener('input', function() {
-            const inputs = form.querySelectorAll('input[required]');
-            let allValid = true;
-            
-            inputs.forEach(input => {
-                if (!input.checkValidity()) {
-                    allValid = false;
-                }
+    });
+    
+    // Eventos específicos para campos del formulario (excepto contraseñas)
+    const camposTexto = ['username', 'email', 'first_name', 'last_name'];
+    camposTexto.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo) {
+            campo.addEventListener('input', function() {
+                // Retroalimentación silenciosa durante escritura
             });
             
-            if (allValid && password1.value === password2.value) {
-                submitBtn.classList.add('pulse');
+            campo.addEventListener('blur', function() {
+                if (this.value && vozHabilitada) {
+                    const label = this.previousElementSibling || this.parentElement.querySelector('label');
+                    const nombreCampo = label ? label.textContent.trim() : 'Campo';
+                    hablarTexto(`${nombreCampo} ingresado`);
+                }
+            });
+        }
+    });
+}
+
+// Procesar comandos de voz específicos para registro
+function procesarComandoVozRegistro(comando) {
+    console.log('Comando recibido:', comando);
+    
+    // Si estamos en modo registro por voz, procesar el flujo
+    if (modoRegistroPorVoz) {
+        procesarFlujoRegistroPorVoz(comando);
+        return;
+    }
+    
+    // Comando para iniciar registro por voz
+    if (comando.includes('registrarse por voz') || comando.includes('registro por voz') || comando.includes('crear cuenta por voz')) {
+        iniciarRegistroPorVoz();
+        return;
+    }
+    
+    // Comando para nombre de usuario
+    if (comando.includes('mi nombre de usuario es') || comando.includes('usuario')) {
+        const valorExtraido = extraerValorComando(comando, ['mi nombre de usuario es', 'nombre de usuario']);
+        if (valorExtraido) {
+            document.getElementById('username').value = valorExtraido;
+            hablarTexto(`Nombre de usuario establecido como ${valorExtraido}`);
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `He establecido tu nombre de usuario como "${valorExtraido}"`);
+        }
+    }
+    // Comando para email
+    else if (comando.includes('mi email es') || comando.includes('mi correo es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi email es', 'mi correo es', 'email']);
+        if (valorExtraido) {
+            document.getElementById('email').value = valorExtraido;
+            hablarTexto(`Email establecido como ${valorExtraido}`);
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `He establecido tu email como "${valorExtraido}"`);
+        }
+    }
+    // Comando para nombre
+    else if (comando.includes('mi nombre es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi nombre es']);
+        if (valorExtraido) {
+            document.getElementById('first_name').value = valorExtraido;
+            hablarTexto(`Nombre establecido como ${valorExtraido}`);
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `He establecido tu nombre como "${valorExtraido}"`);
+        }
+    }
+    // Comando para apellido
+    else if (comando.includes('mi apellido es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi apellido es']);
+        if (valorExtraido) {
+            document.getElementById('last_name').value = valorExtraido;
+            hablarTexto(`Apellido establecido como ${valorExtraido}`);
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `He establecido tu apellido como "${valorExtraido}"`);
+        }
+    }
+    // Comandos informativos
+    else if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
+        leerCamposFormulario();
+    }
+    else if (comando.includes('contraseña') || comando.includes('password')) {
+        ayudaContraseña();
+    }
+    else if (comando.includes('leer') || comando.includes('campos')) {
+        leerCamposFormulario();
+    }
+    else if (comando.includes('requisitos') || comando.includes('necesito')) {
+        leerRequisitos();
+    }
+}
+
+// Iniciar el proceso de registro completamente por voz
+function iniciarRegistroPorVoz() {
+    modoRegistroPorVoz = true;
+    pasoActualRegistro = 0;
+    datosRegistroVoz = { username: '', email: '', first_name: '', last_name: '', password1: '', password2: '' };
+    
+    const mensaje = '🎙️ ¡Perfecto! Vamos a crear tu cuenta usando solo tu voz. Te guiaré paso a paso. Primero, dime el nombre de usuario que deseas usar. Por ejemplo: juan123';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+    
+    // Activar reconocimiento de voz automáticamente
+    if (reconocimientoVoz && !escuchandoComandos) {
+        setTimeout(() => {
+            reconocimientoVoz.start();
+        }, 3000);
+    }
+}
+
+// Procesar el flujo guiado de registro por voz
+function procesarFlujoRegistroPorVoz(comando) {
+    switch(pasoActualRegistro) {
+        case 0: // Esperando nombre de usuario
+            if (comando.length > 2) {
+                datosRegistroVoz.username = comando.trim();
+                document.getElementById('username').value = datosRegistroVoz.username;
+                
+                const mensaje = `✅ Perfecto, nombre de usuario "${datosRegistroVoz.username}" registrado. Ahora dime tu correo electrónico.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', `Usuario: ${comando}`);
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualRegistro = 1;
             } else {
-                submitBtn.classList.remove('pulse');
+                hablarTexto('No escuché bien tu nombre de usuario. Por favor, repítelo con claridad.');
+            }
+            break;
+            
+        case 1: // Esperando email
+            if (comando.length > 5 && (comando.includes('@') || comando.includes(' arroba '))) {
+                // Convertir "arroba" a "@" si es necesario
+                let emailProcesado = comando.trim().replace(/ arroba /g, '@').replace(/ punto /g, '.');
+                datosRegistroVoz.email = emailProcesado;
+                document.getElementById('email').value = datosRegistroVoz.email;
+                
+                const mensaje = `✅ Email "${datosRegistroVoz.email}" registrado. Ahora dime tu nombre.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', `Email: ${comando}`);
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualRegistro = 2;
+            } else {
+                hablarTexto('No escuché bien tu correo electrónico. Recuerda decir "arroba" para el símbolo @ y "punto" para el punto. Por ejemplo: juan arroba ejemplo punto com');
+            }
+            break;
+            
+        case 2: // Esperando nombre
+            if (comando.length > 1) {
+                datosRegistroVoz.first_name = comando.trim();
+                document.getElementById('first_name').value = datosRegistroVoz.first_name;
+                
+                const mensaje = `✅ Nombre "${datosRegistroVoz.first_name}" registrado. Ahora dime tu apellido.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', `Nombre: ${comando}`);
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualRegistro = 3;
+            } else {
+                hablarTexto('No escuché bien tu nombre. Por favor, repítelo con claridad.');
+            }
+            break;
+            
+        case 3: // Esperando apellido
+            if (comando.length > 1) {
+                datosRegistroVoz.last_name = comando.trim();
+                document.getElementById('last_name').value = datosRegistroVoz.last_name;
+                
+                const mensaje = `✅ Apellido "${datosRegistroVoz.last_name}" registrado. Ahora dime tu contraseña. Debe tener al menos 8 caracteres.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', `Apellido: ${comando}`);
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualRegistro = 4;
+            } else {
+                hablarTexto('No escuché bien tu apellido. Por favor, repítelo con claridad.');
+            }
+            break;
+            
+        case 4: // Esperando contraseña
+            if (comando.length >= 8) {
+                datosRegistroVoz.password1 = comando.trim();
+                document.getElementById('password1').value = datosRegistroVoz.password1;
+                
+                const mensaje = `✅ Contraseña recibida. Ahora confírmala, repite tu contraseña nuevamente.`;
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'Contraseña: [oculta por seguridad]');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                pasoActualRegistro = 5;
+            } else {
+                hablarTexto('La contraseña debe tener al menos 8 caracteres. Por favor, repítela.');
+            }
+            break;
+            
+        case 5: // Confirmando contraseña
+            if (comando.length >= 8) {
+                datosRegistroVoz.password2 = comando.trim();
+                document.getElementById('password2').value = datosRegistroVoz.password2;
+                
+                if (datosRegistroVoz.password1 === datosRegistroVoz.password2) {
+                    // Marcar términos y condiciones
+                    document.getElementById('terms').checked = true;
+                    
+                    const mensaje = `✅ Contraseña confirmada correctamente. Resumen de tu registro: Usuario: ${datosRegistroVoz.username}, Email: ${datosRegistroVoz.email}, Nombre: ${datosRegistroVoz.first_name} ${datosRegistroVoz.last_name}. ¿Quieres crear tu cuenta ahora? Di "sí" para confirmar o "no" para cancelar.`;
+                    hablarTexto(mensaje);
+                    agregarMensajeChat('Usuario', 'Contraseña confirmada: [oculta]');
+                    agregarMensajeChat('Asistente', mensaje);
+                    
+                    pasoActualRegistro = 6;
+                } else {
+                    hablarTexto('Las contraseñas no coinciden. Por favor, repite la confirmación de tu contraseña.');
+                    document.getElementById('password2').value = '';
+                }
+            } else {
+                hablarTexto('La contraseña debe tener al menos 8 caracteres. Por favor, repítela.');
+            }
+            break;
+            
+        case 6: // Confirmación final
+            if (comando.includes('sí') || comando.includes('si') || comando.includes('confirmar') || comando.includes('aceptar')) {
+                const mensaje = '🎉 ¡Excelente! Creando tu cuenta...';
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'Sí, confirmar');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                // Detener reconocimiento de voz
+                if (reconocimientoVoz && escuchandoComandos) {
+                    reconocimientoVoz.stop();
+                }
+                
+                // Enviar formulario
+                setTimeout(() => {
+                    document.getElementById('registerForm').submit();
+                }, 1500);
+                
+                modoRegistroPorVoz = false;
+            } else if (comando.includes('no') || comando.includes('cancelar')) {
+                const mensaje = 'Registro por voz cancelado. Puedes intentarlo de nuevo cuando quieras o llenar el formulario manualmente.';
+                hablarTexto(mensaje);
+                agregarMensajeChat('Usuario', 'No, cancelar');
+                agregarMensajeChat('Asistente', mensaje);
+                
+                modoRegistroPorVoz = false;
+                pasoActualRegistro = 0;
+                datosRegistroVoz = { username: '', email: '', first_name: '', last_name: '', password1: '', password2: '' };
+                
+                // Limpiar campos
+                document.getElementById('username').value = '';
+                document.getElementById('email').value = '';
+                document.getElementById('first_name').value = '';
+                document.getElementById('last_name').value = '';
+                document.getElementById('password1').value = '';
+                document.getElementById('password2').value = '';
+                document.getElementById('terms').checked = false;
+            } else {
+                hablarTexto('No entendí tu respuesta. Di "sí" para crear tu cuenta o "no" para cancelar.');
+            }
+            break;
+    }
+}
+
+// Extraer valor de un comando de voz
+function extraerValorComando(comando, palabrasClave) {
+    for (const palabra of palabrasClave) {
+        const indice = comando.indexOf(palabra);
+        if (indice !== -1) {
+            const valor = comando.substring(indice + palabra.length).trim();
+            return valor;
+        }
+    }
+    return null;
+}
+
+// Funciones del asistente
+function leerCamposFormulario() {
+    const mensaje = 'El formulario de registro tiene los siguientes campos: Nombre de usuario, Correo electrónico, Nombre, Apellido, Contraseña y Confirmar contraseña. Puedes llenar estos campos de tres formas: 1. Manualmente con el teclado. 2. Usando comandos de voz individuales. 3. O puedes hacer el registro completo por voz presionando el botón "Registrarse por Voz" donde yo te guiaré paso a paso, incluyendo las contraseñas.';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+}
+
+function leerRequisitos() {
+    const mensaje = 'Para registrarte necesitas: Un nombre de usuario de al menos 3 caracteres, Un correo electrónico válido, Tu nombre y apellido, y Una contraseña de al menos 8 caracteres que debes confirmar. También debes aceptar los términos y condiciones.';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+}
+
+function ayudaContraseña() {
+    const mensaje = 'Para ingresar tu contraseña tienes dos opciones: 1. Puedes escribirla manualmente usando el teclado para mayor seguridad. 2. O puedes usar el modo de registro por voz completo, donde yo recibiré tu contraseña por voz de forma guiada. Ten en cuenta que al usar voz, otras personas podrían escuchar tu contraseña. El modo registro por voz te permite crear toda tu cuenta sin usar el teclado.';
+    hablarTexto(mensaje);
+    agregarMensajeChat('Asistente', mensaje);
+}
+
+function iniciarReconocimientoVoz() {
+    if (reconocimientoVoz) {
+        try {
+            // Verificar si ya está escuchando
+            if (escuchandoComandos) {
+                hablarTexto('El reconocimiento de voz ya está activo');
+                return;
+            }
+            
+            reconocimientoVoz.start();
+            hablarTexto('Micrófono activado, puedes hablar ahora. Di comandos como: mi nombre de usuario es, mi email es, mi nombre es, mi apellido es.');
+        } catch (error) {
+            console.error('Error al iniciar reconocimiento:', error);
+            let mensaje = 'No se pudo iniciar el reconocimiento de voz. ';
+            
+            if (error.name === 'InvalidStateError') {
+                mensaje += 'El reconocimiento ya está activo.';
+            } else {
+                mensaje += 'Verifica que tu navegador tenga permisos de micrófono.';
+            }
+            
+            hablarTexto(mensaje);
+            actualizarEstadoVoz('Error al iniciar');
+        }
+    } else {
+        hablarTexto('El reconocimiento de voz no está disponible en tu navegador. Usa Chrome, Edge o Safari para esta función.');
+        actualizarEstadoVoz('No disponible');
+    }
+}
+
+function activarEscuchaDirecta() {
+    if (reconocimientoVoz) {
+        try {
+            if (escuchandoComandos) {
+                hablarTexto('El reconocimiento de voz ya está activo');
+                return;
+            }
+            reconocimientoVoz.start();
+            hablarTexto('Micrófono activado, puedes hablar ahora');
+        } catch (error) {
+            console.error('Error al activar escucha:', error);
+            hablarTexto('No se pudo activar el micrófono. Verifica los permisos.');
+            actualizarEstadoVoz('Error');
+        }
+    }
+}
+}
+
+function actualizarEstadoVoz(estado) {
+    const statusElement = document.getElementById('status-texto');
+    if (statusElement) {
+        statusElement.textContent = estado;
+    }
+}
+
+function toggleVoz() {
+    vozHabilitada = !vozHabilitada;
+    document.getElementById('voz-habilitada').checked = vozHabilitada;
+    
+    if (vozHabilitada) {
+        hablarTexto('Voz activada');
+    } else {
+        speechSynthesis.cancel();
+    }
+}
+
+// Funciones del chat
+function enviarMensajeConVoz() {
+    const input = document.getElementById('chat-input');
+    const mensaje = input.value.trim();
+    
+    if (!mensaje) return;
+    
+    // Agregar mensaje del usuario
+    agregarMensajeChat('Usuario', mensaje);
+    
+    // Procesar como comando de voz también
+    procesarComandoVozRegistro(mensaje.toLowerCase());
+    
+    // Simular respuesta del asistente si no fue procesado
+    setTimeout(() => {
+        const respuesta = generarRespuestaAsistenteRegistro(mensaje);
+        if (respuesta) {
+            agregarMensajeChat('Asistente', respuesta);
+            hablarTexto(respuesta);
+        }
+    }, 500);
+    
+    input.value = '';
+}
+
+function generarRespuestaAsistenteRegistro(mensaje) {
+    const mensajeLower = mensaje.toLowerCase();
+    
+    if (mensajeLower.includes('ayuda') || mensajeLower.includes('help')) {
+        return '✨ Puedo ayudarte con el registro. Di comandos como: "mi nombre de usuario es...", "mi email es...", "mi nombre es...", "mi apellido es...", o pregúntame sobre requisitos y contraseñas.';
+    } else if (mensajeLower.includes('hola') || mensajeLower.includes('buenos')) {
+        return '👋 ¡Hola! Bienvenido al asistente de registro de VOCALCART. ¿En qué puedo ayudarte con tu registro?';
+    } else if (mensajeLower.includes('gracias')) {
+        return '😊 ¡De nada! Estoy aquí para ayudarte. Si necesitas algo más, solo dímelo.';
+    }
+    
+    return null; // Si ya se procesó el comando, no duplicar respuesta
+}
+
+function agregarMensajeChat(remitente, mensaje) {
+    const chatMessages = document.getElementById('chat-messages');
+    const esAsistente = remitente === 'Asistente';
+    
+    const mensajeHTML = `
+        <div class="message ${esAsistente ? 'asistente' : 'usuario'}-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar ${esAsistente ? 'bg-primary' : 'bg-secondary'} text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-${esAsistente ? 'robot' : 'user'}" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>${remitente}:</strong>
+                    <p class="mb-0">${mensaje}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.innerHTML += mensajeHTML;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function limpiarChatConVoz() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = `
+        <div class="message asistente-message mb-3">
+            <div class="d-flex align-items-start">
+                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-robot" aria-hidden="true"></i>
+                </div>
+                <div class="message-content">
+                    <strong>Asistente de Voz:</strong>
+                    <p class="mb-2">¡Hola! Soy tu asistente para el registro en VOCALCART. Estoy aquí para ayudarte a crear tu cuenta de forma accesible.</p>
+                    <div class="small text-muted">
+                        💡 <strong>Tip:</strong> Puedes usar comandos de voz o escribir. Di "ayuda" para más opciones.
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    hablarTexto('Nueva conversación iniciada con el asistente de registro');
+}
+
+// Función para mantener la validación original del formulario
+function inicializarValidacionFormulario() {
+    const form = document.getElementById('registerForm');
+    const password1 = document.getElementById('password1');
+    const password2 = document.getElementById('password2');
+    const username = document.getElementById('username');
+    const email = document.getElementById('email');
+    const submitBtn = document.getElementById('submitBtn');
+    const passwordStrength = document.getElementById('passwordStrength');
+    
+    // Validación de contraseñas en tiempo real
+    function validatePasswords() {
+        const pass1 = password1.value;
+        const pass2 = password2.value;
+        
+        if (pass2 !== '' && pass1 !== pass2) {
+            password2.setCustomValidity('Las contraseñas no coinciden');
+            password2.classList.add('is-invalid');
+            password2.classList.remove('is-valid');
+        } else if (pass2 !== '' && pass1 === pass2 && pass1.length >= 8) {
+            password2.setCustomValidity('');
+            password2.classList.remove('is-invalid');
+            password2.classList.add('is-valid');
+        } else {
+            password2.classList.remove('is-invalid', 'is-valid');
+        }
+    }
+    
+    // Indicador de fuerza de contraseña
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        let className = '';
+        
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password)) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        
+        switch(strength) {
+            case 0:
+            case 1:
+                className = 'password-weak';
+                break;
+            case 2:
+                className = 'password-medium';
+                break;
+            case 3:
+            case 4:
+                className = 'password-strong';
+                break;
+            case 5:
+                className = 'password-very-strong';
+                break;
+        }
+        
+        passwordStrength.className = 'password-strength ' + className;
+    }
+    
+    // Validación de nombre de usuario
+    function validateUsername() {
+        const value = username.value;
+        if (value.length >= 3) {
+            username.classList.remove('is-invalid');
+            username.classList.add('is-valid');
+        } else if (value.length > 0) {
+            username.classList.add('is-invalid');
+            username.classList.remove('is-valid');
+        }
+    }
+    
+    // Validación de email
+    function validateEmail() {
+        const value = email.value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (emailRegex.test(value)) {
+            email.classList.remove('is-invalid');
+            email.classList.add('is-valid');
+        } else if (value.length > 0) {
+            email.classList.add('is-invalid');
+            email.classList.remove('is-valid');
+        }
+    }
+    
+    // Event listeners
+    password1.addEventListener('input', function() {
+        const value = this.value;
+        checkPasswordStrength(value);
+        
+        if (value.length >= 8) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else if (value.length > 0) {
+            this.classList.add('is-invalid');
+            this.classList.remove('is-valid');
+        }
+        
+        validatePasswords();
+    });
+    
+    password2.addEventListener('input', validatePasswords);
+    username.addEventListener('input', validateUsername);
+    email.addEventListener('input', validateEmail);
+    
+    // Efecto de loading al enviar el formulario
+    form.addEventListener('submit', function(e) {
+        const isValid = form.checkValidity();
+        
+        if (isValid) {
+            submitBtn.classList.add('btn-loading');
+            submitBtn.disabled = true;
+            hablarTexto('Enviando tu registro, por favor espera');
+            
+            // Simular un pequeño delay para mostrar el efecto
+            setTimeout(() => {
+                // El formulario se enviará normalmente
+            }, 500);
+        } else {
+            hablarTexto('Por favor completa todos los campos correctamente antes de enviar el formulario');
+        }
+    });
+    
+    // Validación del formulario completo
+    form.addEventListener('input', function() {
+        const inputs = form.querySelectorAll('input[required]');
+        let allValid = true;
+        
+        inputs.forEach(input => {
+            if (!input.checkValidity()) {
+                allValid = false;
             }
         });
         
-        // Efecto de enfoque automático en el primer campo
-        username.focus();
+        if (allValid && password1.value === password2.value) {
+            submitBtn.classList.add('pulse');
+        } else {
+            submitBtn.classList.remove('pulse');
+        }
     });
+    
+    // Efecto de enfoque automático en el primer campo
+    username.focus();
+}
+
+// CSS para indicadores de estado
+const style = document.createElement('style');
+style.textContent = `
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        animation: pulse 1s infinite;
+    }
+    
+    .status-indicator.active {
+        background-color: #28a745;
+    }
+    
+    .status-indicator.speaking {
+        background-color: #007bff;
+    }
+    
+    .status-indicator.error {
+        background-color: #dc3545;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .voz-control-container {
+        z-index: 1050;
+    }
+    
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0,0,0,0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock contenido %}

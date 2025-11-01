@@ -1,0 +1,20 @@
+/* Estilos globales para VocalCart */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.App {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Font Awesome CDN - agregar en index.html si no está */
+
