@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { VoiceAssistant } from '../components/VoiceAssistant';
+import { VoiceDiagnostics } from '../components/VoiceDiagnostics';
 import { ProductCard } from '../components/ProductCard';
 import { ShoppingCart } from '../components/ShoppingCart';
+import { CheckoutModal } from '../components/CheckoutModal';
 import { useVoiceAssistant } from '../hooks/useVoiceAssistant';
-import { getCategorias, getProductos } from '../services/api';
+import { getCategorias, getProductos, processCheckout } from '../services/api';
 import './Shop.css';
 
 /**
@@ -19,8 +22,21 @@ export const Shop = () => {
   const [categories, setCategories] = useState(['todas']);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   
-  const { speak, transcript, clearTranscript } = useVoiceAssistant();
+  const { speak, transcript, clearTranscript, startListening, isListening } = useVoiceAssistant();
+
+  // Activar reconocimiento de voz automáticamente al cargar
+  useEffect(() => {
+    // Esperar 1 segundo para que el usuario vea la interfaz primero
+    const timer = setTimeout(() => {
+      if (!isListening) {
+        speak('Bienvenido a Vocal Cart. Haz clic en el botón de micrófono para activar el reconocimiento de voz y poder usar comandos como: agregar producto, ver carrito, o finalizar compra. También puedes decir ayuda en cualquier momento.');
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Cargar categorías desde la API
   useEffect(() => {
@@ -83,8 +99,42 @@ export const Shop = () => {
     const cmd = command.toLowerCase().trim();
     console.log('Comando recibido:', cmd);
 
-    // Agregar producto al carrito
+    // Comando de ayuda
+    if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir')) {
+      const ayuda = 'Puedes decir: Agregar producto con cantidad, por ejemplo agregar 5 manzanas. ' +
+                    'Ver carrito. Leer productos. Buscar producto. Vaciar carrito. ' +
+                    'Finalizar compra. Filtrar por categoría. ' +
+                    'También puedes decir ayuda en cualquier momento para escuchar esta lista.';
+      speak(ayuda);
+      clearTranscript();
+      return;
+    }
+
+    // Agregar producto (soporta cantidad: "agregar 5 manzanas")
     if (cmd.includes('agregar') || cmd.includes('añadir')) {
+      // Extraer cantidad si existe
+      const numberWords = {
+        'un': 1, 'una': 1, 'uno': 1,
+        'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
+        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10
+      };
+      
+      let cantidad = 1;
+      
+      // Buscar número en palabras
+      for (const [word, num] of Object.entries(numberWords)) {
+        if (cmd.includes(word)) {
+          cantidad = num;
+          break;
+        }
+      }
+      
+      // Buscar número en dígitos
+      const digitMatch = cmd.match(/\d+/);
+      if (digitMatch) {
+        cantidad = parseInt(digitMatch[0]);
+      }
+
       const productMatches = products.filter(p => 
         cmd.includes(p.name.toLowerCase()) || 
         cmd.includes(p.category.toLowerCase())
@@ -92,8 +142,13 @@ export const Shop = () => {
 
       if (productMatches.length > 0) {
         const product = productMatches[0];
-        addToCart(product);
-        speak(`He agregado ${product.name} al carrito`);
+        
+        // Agregar la cantidad especificada
+        for (let i = 0; i < cantidad; i++) {
+          addToCart(product);
+        }
+        
+        speak(`He agregado ${cantidad} ${cantidad === 1 ? product.name : product.name + 's'} al carrito`);
       } else {
         speak('No encontré ese producto. ¿Puedes repetir el nombre?');
       }
@@ -223,23 +278,67 @@ export const Shop = () => {
     setCartItems([]);
   };
 
-  // Finalizar compra
+  // Abrir modal de checkout
   const handleCheckout = () => {
-    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    
-    speak(`Tu compra de ${totalItems} artículos por un total de ${total.toFixed(2)} dólares ha sido procesada. ¡Gracias por tu compra!`);
-    
-    // Aquí se integraría con el backend de Django
-    console.log('Procesando compra:', {
-      items: cartItems,
-      total: total
-    });
-    
-    // Limpiar carrito después de 2 segundos
-    setTimeout(() => {
-      clearCart();
-    }, 2000);
+    if (cartItems.length === 0) {
+      speak('Tu carrito está vacío. Agrega productos antes de finalizar la compra');
+      return;
+    }
+    setShowCheckoutModal(true);
+  };
+
+  // Procesar compra completa
+  const handleCheckoutComplete = async (checkoutData) => {
+    try {
+      const result = await processCheckout(checkoutData);
+      
+      if (result.success) {
+        const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        speak(`¡Compra exitosa! Tu pedido número ${result.compraId} de ${totalItems} artículos por ${total.toFixed(2)} dólares ha sido registrado. ¡Gracias por tu compra!`);
+        
+        // Cerrar modal y limpiar carrito
+        setShowCheckoutModal(false);
+        clearCart();
+        
+        // Mostrar toast de éxito
+        toast.success(
+          <div>
+            <strong>¡Compra completada con éxito!</strong>
+            <div style={{ marginTop: '8px', fontSize: '0.9rem' }}>
+              <div>📦 Pedido N°: <strong>{result.compraId}</strong></div>
+              <div>💰 Total: <strong>${total.toFixed(2)}</strong></div>
+              <div>📍 {checkoutData.requiere_envio 
+                ? '🚚 Tu pedido será enviado a la dirección indicada' 
+                : '🏪 Puedes recoger tu pedido en la tienda'}
+              </div>
+            </div>
+          </div>,
+          {
+            position: "top-center",
+            autoClose: 8000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error al procesar la compra:', error);
+      speak('Hubo un error al procesar tu compra. Por favor, intenta nuevamente.');
+      
+      toast.error(
+        'Error al procesar la compra. Por favor, intenta nuevamente.',
+        {
+          position: "top-center",
+          autoClose: 5000,
+        }
+      );
+      
+      throw error;
+    }
   };
 
   // Filtrar productos según búsqueda y categoría
@@ -259,6 +358,9 @@ export const Shop = () => {
       {/* Asistente de Voz */}
       <VoiceAssistant onCommand={processVoiceCommand} />
 
+      {/* Diagnóstico de Voz */}
+      <VoiceDiagnostics />
+
       {/* Header */}
       <header className="shop-header">
         <div className="header-content">
@@ -271,6 +373,30 @@ export const Shop = () => {
           </p>
         </div>
       </header>
+
+      {/* Banner de instrucciones de voz */}
+      {!isListening && (
+        <div className="voice-help-banner" style={{
+          backgroundColor: '#007bff',
+          color: 'white',
+          padding: '15px',
+          margin: '20px auto',
+          maxWidth: '1200px',
+          borderRadius: '10px',
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>
+            🎙️ ¡Activa tu voz para comenzar!
+          </h3>
+          <p style={{ margin: '5px 0', fontSize: '1rem' }}>
+            Haz clic en el botón de <strong>micrófono</strong> en el panel flotante de la izquierda para activar los comandos de voz.
+          </p>
+          <p style={{ margin: '5px 0', fontSize: '0.9rem', opacity: 0.9 }}>
+            📢 Ejemplos: "agregar 5 manzanas", "ver carrito", "finalizar compra", "ayuda"
+          </p>
+        </div>
+      )}
 
       {/* Barra de búsqueda y filtros */}
       <div className="shop-filters">
@@ -378,6 +504,14 @@ export const Shop = () => {
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
         onCheckout={handleCheckout}
+      />
+
+      {/* Modal de Checkout */}
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        cartItems={cartItems}
+        onCheckoutComplete={handleCheckoutComplete}
       />
     </div>
   );

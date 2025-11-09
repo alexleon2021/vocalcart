@@ -5,6 +5,10 @@ const API_BASE_URL = 'http://localhost:8000';
  * Servicio para consumir la API de VocalCart
  */
 
+// ============================================
+// CATEGORÍAS
+// ============================================
+
 // Obtener todas las categorías
 export const getCategorias = async () => {
   try {
@@ -177,6 +181,111 @@ export const deleteProducto = async (id) => {
     return true;
   } catch (error) {
     console.error('Error en deleteProducto:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// COMPRAS
+// ============================================
+
+// Crear una nueva compra con artículos
+export const createCompra = async (compraData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/compra/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(compraData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al crear la compra');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en createCompra:', error);
+    throw error;
+  }
+};
+
+// Crear artículos de compra
+export const createArticuloCompra = async (articuloData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/articulo-compra/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(articuloData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al crear el artículo de compra');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en createArticuloCompra:', error);
+    throw error;
+  }
+};
+
+// Crear envío
+export const createEnvio = async (envioData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/envio/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(envioData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al crear el envío');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en createEnvio:', error);
+    throw error;
+  }
+};
+
+// Función para procesar compra completa
+export const processCheckout = async (checkoutData) => {
+  try {
+    // 1. Crear la compra
+    const compraResponse = await createCompra(checkoutData.compra);
+    const compraId = compraResponse.id;
+    
+    // 2. Crear los artículos de compra
+    const articulosPromises = checkoutData.articulos.map(articulo => 
+      createArticuloCompra({
+        ...articulo,
+        compra: compraId
+      })
+    );
+    await Promise.all(articulosPromises);
+    
+    // 3. Crear envío si es requerido
+    if (checkoutData.requiere_envio && checkoutData.envio) {
+      await createEnvio({
+        ...checkoutData.envio,
+        compra: compraId
+      });
+    }
+    
+    return {
+      success: true,
+      compraId: compraId,
+      message: 'Compra procesada exitosamente'
+    };
+  } catch (error) {
+    console.error('Error en processCheckout:', error);
     throw error;
   }
 };

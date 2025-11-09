@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useVoiceAssistant } from '../hooks/useVoiceAssistant';
+import { NetworkErrorHelper } from './NetworkErrorHelper';
 import './VoiceAssistant.css';
 
 /**
@@ -25,6 +26,14 @@ export const VoiceAssistant = ({ onCommand }) => {
 
   const [showModal, setShowModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showNetworkError, setShowNetworkError] = useState(false);
+
+  // Detectar error de red y mostrar helper
+  useEffect(() => {
+    if (voiceStatus && voiceStatus.toLowerCase().includes('error de red')) {
+      setShowNetworkError(true);
+    }
+  }, [voiceStatus]);
 
   // Procesar comandos de voz
   const handleTranscript = (text) => {
@@ -251,6 +260,12 @@ export const VoiceAssistant = ({ onCommand }) => {
           </div>
         </div>
       )}
+
+      {/* Helper de error de red */}
+      <NetworkErrorHelper 
+        show={showNetworkError}
+        onClose={() => setShowNetworkError(false)}
+      />
     </>
   );
 };
