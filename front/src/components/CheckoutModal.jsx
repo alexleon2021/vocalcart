@@ -54,42 +54,57 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
   useEffect(() => {
     if (!isOpen) return;
     
+    const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    
     const instrucciones = {
       1: `Paso 1 de 3: Datos de Facturación y Pago. 
-          Puedes dictar tus datos usando comandos de voz. 
+          Tu carrito tiene ${itemCount} productos por un total de ${total.toFixed(2)} dólares.
+          Puedes llenar todos los campos usando tu voz.
           Di "mi nombre es" seguido de tu nombre completo.
-          Di "mi documento es" seguido de tu número de documento.
+          Di "mi documento es" seguido de tu número de cédula.
           Di "mi teléfono es" seguido de tu teléfono.
-          Di "mi correo es" seguido de tu email.
-          Di "mi tarjeta es" seguido de los 16 dígitos de tu tarjeta.
-          Di "CVV" seguido de los 3 dígitos.
-          Di "vencimiento" seguido del mes y año en formato mes mes año año.
-          Di "siguiente" para continuar al paso 2.`,
+          Di "mi correo es" seguido de tu email, puedes decir "arroba" para el símbolo arroba.
+          Para el pago: Di "mi tarjeta es" seguido de los 16 dígitos.
+          Di "CVV" o "código de seguridad" seguido de 3 o 4 dígitos.
+          Di "vencimiento" seguido del mes y año, por ejemplo: vencimiento 12 25.
+          Di "ayuda" en cualquier momento para escuchar los comandos.
+          Di "siguiente" cuando estés listo para continuar.`,
       
-      2: `Paso 2 de 3: Datos de Envío. 
-          Di "con envío" si quieres que te enviemos el pedido a domicilio.
-          Di "sin envío" o "recogida en tienda" si prefieres recoger en tienda.
-          Para envío a domicilio, di "mi dirección es" seguido de tu dirección completa.
+      2: `Paso 2 de 3: Opciones de Entrega. 
+          Di "con envío" si quieres recibir el pedido en tu domicilio.
+          Di "sin envío" o "recogida en tienda" si prefieres recoger en nuestras tiendas.
+          Si eliges envío a domicilio:
+          Di "mi dirección es" seguido de tu dirección completa con calle y número.
           Di "mi ciudad es" seguido del nombre de tu ciudad.
           Di "código postal" seguido del código.
-          Di "siguiente" para continuar, o "atrás" para volver.`,
+          Di "ayuda" para escuchar los comandos.
+          Di "siguiente" para continuar, o "atrás" para volver al paso anterior.`,
       
-      3: `Paso 3 de 3: Confirmación de compra.
-          Por favor revisa que todos los datos sean correctos.
-          Tu compra total es de ${total.toFixed(2)} dólares.
-          Di "confirmar compra" para finalizar, o "atrás" para modificar datos.`
+      3: `Paso 3 de 3: Confirmación Final.
+          Por favor revisa que todos tus datos sean correctos.
+          Subtotal: ${subtotal.toFixed(2)} dólares.
+          IVA 19 por ciento: ${iva.toFixed(2)} dólares.
+          Total a pagar: ${total.toFixed(2)} dólares.
+          ${requiereEnvio ? 
+            `Envío a domicilio: ${formData.direccion || 'No especificada'}, ${formData.ciudad || ''}.` : 
+            `Recogida en tienda: ${tiendaSeleccionada}.`
+          }
+          Di "confirmar compra" para finalizar tu pedido.
+          Di "atrás" si necesitas modificar algún dato.
+          Di "cancelar" para salir.`
     };
     
     setTimeout(() => {
       speak(instrucciones[step]);
-    }, 500);
-  }, [step, isOpen, total, speak]);
+    }, 800);
+  }, [step, isOpen, total, speak, cartItems, subtotal, iva, formData, requiereEnvio, tiendaSeleccionada]);
 
   // Procesar comandos de voz
   useEffect(() => {
     if (!transcript || !isOpen) return;
     
     processVoiceCommand(transcript);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transcript, isOpen]);
 
   const handleInputChange = (e) => {
@@ -246,21 +261,37 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
     if (step === 1) {
       // Nombre
       if (cmd.includes('mi nombre es') || cmd.includes('me llamo')) {
-        const nombre = cmd.replace(/mi nombre es|me llamo/g, '').trim();
+        const nombre = cmd.replace(/mi nombre es|me llamo|nombre/g, '').trim();
         if (nombre) {
-          setFormData(prev => ({ ...prev, nombre_facturacion: nombre }));
-          speak(`Nombre registrado: ${nombre}`);
+          // Capitalizar primera letra de cada palabra
+          const nombreCapitalizado = nombre.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+          setFormData(prev => ({ ...prev, nombre_facturacion: nombreCapitalizado }));
+          speak(`Nombre registrado: ${nombreCapitalizado}. Campo completado.`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.nombre_facturacion;
+            return newErrors;
+          });
         }
         clearTranscript();
         return;
       }
 
       // Documento
-      if (cmd.includes('mi documento es') || cmd.includes('documento')) {
-        const documento = cmd.replace(/mi documento es|documento/g, '').trim().replace(/\s/g, '');
-        if (documento) {
+      if (cmd.includes('mi documento es') || cmd.includes('mi cédula es') || cmd.includes('documento')) {
+        const documento = cmd.replace(/mi documento es|mi cédula es|mi cedula es|documento|cédula|cedula/g, '').trim().replace(/\s/g, '');
+        if (documento && documento.length >= 6) {
           setFormData(prev => ({ ...prev, documento_facturacion: documento }));
-          speak(`Documento registrado`);
+          speak(`Documento registrado: ${documento}. Campo completado.`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.documento_facturacion;
+            return newErrors;
+          });
+        } else {
+          speak('El documento debe tener al menos 6 dígitos. Por favor, repítelo.');
         }
         clearTranscript();
         return;
@@ -268,23 +299,38 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Teléfono
       if (cmd.includes('mi teléfono es') || cmd.includes('mi telefono es') || cmd.includes('teléfono') || cmd.includes('telefono')) {
-        const telefono = cmd.replace(/mi teléfono es|mi telefono es|teléfono|telefono/g, '').trim();
-        if (telefono) {
+        const telefono = cmd.replace(/mi teléfono es|mi telefono es|teléfono|telefono/g, '').trim().replace(/\s/g, '');
+        if (telefono && telefono.length >= 7) {
           setFormData(prev => ({ ...prev, telefono_facturacion: telefono }));
-          speak(`Teléfono registrado`);
+          speak(`Teléfono registrado: ${telefono}. Campo completado.`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.telefono_facturacion;
+            return newErrors;
+          });
+        } else {
+          speak('El teléfono debe tener al menos 7 dígitos. Por favor, repítelo.');
         }
         clearTranscript();
         return;
       }
 
       // Email
-      if (cmd.includes('mi correo es') || cmd.includes('mi email es') || cmd.includes('correo')) {
-        let email = cmd.replace(/mi correo es|mi email es|correo/g, '').trim();
-        // Convertir "arroba" a @
-        email = email.replace(/arroba/g, '@').replace(/\s/g, '');
+      if (cmd.includes('mi correo es') || cmd.includes('mi email es') || cmd.includes('correo') || cmd.includes('email')) {
+        let email = cmd.replace(/mi correo es|mi email es|correo|email/g, '').trim();
+        // Convertir palabras a símbolos
+        email = email.replace(/\sarroba\s/g, '@').replace(/arroba/g, '@');
+        email = email.replace(/\spunto\s/g, '.').replace(/punto\scom/g, '.com');
+        email = email.replace(/\s/g, ''); // Eliminar espacios
+        
         if (email) {
           setFormData(prev => ({ ...prev, email_facturacion: email }));
-          speak(`Correo electrónico registrado`);
+          speak(`Correo electrónico registrado: ${email}. Campo completado.`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.email_facturacion;
+            return newErrors;
+          });
         }
         clearTranscript();
         return;
@@ -468,6 +514,42 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
           <button className="btn-close-modal" onClick={onClose} aria-label="Cerrar">
             <i className="fas fa-times"></i>
           </button>
+        </div>
+
+        {/* Indicador de Control por Voz */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '10px 20px',
+          margin: '10px 20px 0',
+          borderRadius: '8px',
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <i className="fas fa-microphone" style={{ fontSize: '16px' }}></i>
+          <div style={{ flex: 1 }}>
+            <strong>🎤 Control por Voz Activado</strong>
+            <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
+              Presiona ESPACIO y di: "mi nombre es...", "mi correo es...", "ayuda"
+            </div>
+          </div>
+          {transcript && (
+            <div style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '3px 10px',
+              borderRadius: '15px',
+              fontSize: '11px',
+              fontStyle: 'italic',
+              maxWidth: '200px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              "{transcript}"
+            </div>
+          )}
         </div>
 
         {/* Progress Steps */}

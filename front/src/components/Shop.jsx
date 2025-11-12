@@ -95,29 +95,37 @@ export const Shop = () => {
     fetchProducts();
   }, [speak]);
 
-  // Procesar comandos de voz
+  // Procesar comandos de voz (optimizado para discapacidad visual)
   const processVoiceCommand = useCallback((command) => {
     const cmd = command.toLowerCase().trim();
-    console.log('Comando recibido:', cmd);
+    console.log('🎤 Comando recibido:', cmd);
 
-    // Comando de ayuda
-    if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir')) {
-      const ayuda = 'Puedes decir: Agregar producto con cantidad, por ejemplo agregar 5 manzanas. ' +
-                    'Ver carrito. Leer productos. Buscar producto. Vaciar carrito. ' +
-                    'Finalizar compra. Filtrar por categoría. ' +
-                    'También puedes decir ayuda en cualquier momento para escuchar esta lista.';
+    // ===== COMANDO: AYUDA =====
+    if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir') || cmd.includes('que puedo decir')) {
+      const ayuda = 'Comandos disponibles. ' +
+                    'Para agregar productos di: agregar seguido de la cantidad y el nombre del producto. Por ejemplo, agregar cinco manzanas. ' +
+                    'Para ver el carrito di: ver carrito o leer carrito. ' +
+                    'Para conocer productos di: leer productos o qué productos hay. ' +
+                    'Para buscar di: buscar seguido del nombre. ' +
+                    'Para vaciar el carrito di: vaciar carrito. ' +
+                    'Para finalizar la compra di: finalizar compra. ' +
+                    'Para información de un producto di: información de seguido del nombre del producto. ' +
+                    'Di ayuda en cualquier momento para escuchar esta lista.';
       speak(ayuda);
       clearTranscript();
       return;
     }
 
-    // Agregar producto (soporta cantidad: "agregar 5 manzanas")
-    if (cmd.includes('agregar') || cmd.includes('añadir')) {
-      // Extraer cantidad si existe
+    // ===== COMANDO: AGREGAR PRODUCTO CON CANTIDAD =====
+    if (cmd.includes('agregar') || cmd.includes('añadir') || cmd.includes('agrega')) {
+      // Diccionario de números en palabras
       const numberWords = {
         'un': 1, 'una': 1, 'uno': 1,
         'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
-        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10
+        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10,
+        'once': 11, 'doce': 12, 'trece': 13, 'catorce': 14, 'quince': 15,
+        'dieciséis': 16, 'dieciseis': 16, 'diecisiete': 17, 'dieciocho': 18,
+        'diecinueve': 19, 'veinte': 20
       };
       
       let cantidad = 1;
@@ -136,103 +144,245 @@ export const Shop = () => {
         cantidad = parseInt(digitMatch[0]);
       }
 
+      // Buscar producto por nombre o categoría
       const productMatches = products.filter(p => 
         cmd.includes(p.name.toLowerCase()) || 
-        cmd.includes(p.category.toLowerCase())
+        p.name.toLowerCase().split(' ').some(word => cmd.includes(word))
       );
 
       if (productMatches.length > 0) {
         const product = productMatches[0];
+        
+        // Verificar stock disponible
+        const currentInCart = cartItems.find(item => item.id === product.id)?.quantity || 0;
+        const availableStock = product.stock - currentInCart;
+        
+        if (availableStock < cantidad) {
+          speak(`Lo siento, solo hay ${availableStock} unidades disponibles de ${product.name}. ${currentInCart > 0 ? `Ya tienes ${currentInCart} en el carrito.` : ''}`);
+          clearTranscript();
+          return;
+        }
         
         // Agregar la cantidad especificada
         for (let i = 0; i < cantidad; i++) {
           addToCart(product);
         }
         
-        speak(`He agregado ${cantidad} ${cantidad === 1 ? product.name : product.name + 's'} al carrito`);
+        const totalInCart = currentInCart + cantidad;
+        const precioTotal = product.price * cantidad;
+        
+        speak(`Perfecto. He agregado ${cantidad} ${cantidad === 1 ? product.name : product.name} al carrito. ` +
+              `Precio unitario: ${product.price} pesos. Total: ${precioTotal.toFixed(2)} pesos. ` +
+              `Ahora tienes ${totalInCart} ${totalInCart === 1 ? 'unidad' : 'unidades'} de este producto.`);
       } else {
-        speak('No encontré ese producto. ¿Puedes repetir el nombre?');
+        speak('No encontré ese producto. Por favor, di leer productos para escuchar los productos disponibles.');
       }
       clearTranscript();
       return;
     }
 
-    // Ver carrito
-    if (cmd.includes('ver carrito') || cmd.includes('mostrar carrito')) {
+    // ===== COMANDO: LEER/VER CARRITO COMPLETO =====
+    if (cmd.includes('leer carrito') || cmd.includes('ver carrito') || cmd.includes('mostrar carrito') || cmd.includes('qué hay en el carrito') || cmd.includes('que hay en el carrito')) {
       if (cartItems.length === 0) {
-        speak('Tu carrito está vacío');
+        speak('Tu carrito está vacío. Di leer productos para conocer los productos disponibles.');
       } else {
-        const total = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-        speak(`Tienes ${total} artículos en el carrito`);
+        let mensaje = `Tienes ${cartItems.length} ${cartItems.length === 1 ? 'producto' : 'productos'} en el carrito. `;
+        
+        cartItems.forEach((item, index) => {
+          mensaje += `${index + 1}. ${item.name}, cantidad: ${item.quantity}, precio unitario: ${item.price} pesos, subtotal: ${(item.price * item.quantity).toFixed(2)} pesos. `;
+        });
+        
+        const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        
+        mensaje += `Total de artículos: ${totalItems}. Total a pagar: ${totalPrice.toFixed(2)} pesos.`;
+        
+        speak(mensaje);
       }
       clearTranscript();
       return;
     }
 
-    // Buscar producto
-    if (cmd.includes('buscar') || cmd.includes('busca')) {
-      const searchTerm = cmd.replace(/buscar|busca/g, '').trim();
+    // ===== COMANDO: INFORMACIÓN DE PRODUCTO =====
+    if (cmd.includes('información') || cmd.includes('informacion') || cmd.includes('detalles') || cmd.includes('precio de') || cmd.includes('cuánto cuesta') || cmd.includes('cuanto cuesta')) {
+      const productMatches = products.filter(p => 
+        cmd.includes(p.name.toLowerCase()) || 
+        p.name.toLowerCase().split(' ').some(word => cmd.includes(word))
+      );
+
+      if (productMatches.length > 0) {
+        const product = productMatches[0];
+        const mensaje = `${product.name}. ` +
+                       `Categoría: ${product.category}. ` +
+                       `Precio: ${product.price} pesos. ` +
+                       `${product.description ? product.description + '. ' : ''}` +
+                       `Stock disponible: ${product.stock} unidades. ` +
+                       `Di agregar ${product.name} para agregarlo al carrito.`;
+        speak(mensaje);
+      } else {
+        speak('No encontré información de ese producto. Di leer productos para conocer los productos disponibles.');
+      }
+      clearTranscript();
+      return;
+    }
+
+    // ===== COMANDO: BUSCAR PRODUCTO =====
+    if (cmd.includes('buscar') || cmd.includes('busca') || cmd.includes('encuentra')) {
+      const searchTerm = cmd.replace(/buscar|busca|encuentra/g, '').trim();
       if (searchTerm) {
         setSearchQuery(searchTerm);
-        // Buscar en todos los productos
+        
         const results = allProducts.filter(p =>
           p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchTerm.toLowerCase())
+          p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.category.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        speak(`Encontré ${results.length} producto${results.length !== 1 ? 's' : ''} con ${searchTerm}`);
+        
+        if (results.length === 0) {
+          speak(`No encontré productos con ${searchTerm}. Di leer productos para conocer todos los productos disponibles.`);
+        } else if (results.length === 1) {
+          const p = results[0];
+          speak(`Encontré un producto: ${p.name}. Categoría: ${p.category}. Precio: ${p.price} pesos. Di agregar ${p.name} para agregarlo al carrito.`);
+        } else {
+          let mensaje = `Encontré ${results.length} productos con ${searchTerm}. `;
+          results.slice(0, 5).forEach((p, i) => {
+            mensaje += `${i + 1}. ${p.name}, ${p.price} pesos. `;
+          });
+          if (results.length > 5) {
+            mensaje += `Y ${results.length - 5} productos más. `;
+          }
+          speak(mensaje);
+        }
+      } else {
+        speak('No escuché el nombre del producto a buscar. Por favor, di buscar seguido del nombre del producto.');
       }
       clearTranscript();
       return;
     }
 
-    // Leer productos disponibles
-    if (cmd.includes('leer productos') || cmd.includes('qué productos hay') || cmd.includes('que productos hay')) {
+    // ===== COMANDO: LEER PRODUCTOS DISPONIBLES =====
+    if (cmd.includes('leer productos') || cmd.includes('qué productos hay') || cmd.includes('que productos hay') || cmd.includes('mostrar productos') || cmd.includes('listar productos')) {
       if (products.length === 0) {
-        speak('No hay productos disponibles');
+        speak('No hay productos disponibles en este momento.');
       } else {
-        const productNames = products.slice(0, 5).map(p => p.name).join(', ');
-        speak(`Tenemos los siguientes productos: ${productNames}${products.length > 5 ? ', y más' : ''}`);
+        let mensaje = `Hay ${products.length} productos disponibles. `;
+        
+        products.slice(0, 10).forEach((p, index) => {
+          mensaje += `${index + 1}. ${p.name}, categoría: ${p.category}, precio: ${p.price} pesos. `;
+        });
+        
+        if (products.length > 10) {
+          mensaje += `Y ${products.length - 10} productos más. Di buscar para encontrar un producto específico.`;
+        } else {
+          mensaje += `Para agregar un producto, di agregar seguido del nombre y la cantidad.`;
+        }
+        
+        speak(mensaje);
       }
       clearTranscript();
       return;
     }
 
-    // Vaciar carrito
-    if (cmd.includes('vaciar carrito') || cmd.includes('limpiar carrito')) {
-      clearCart();
-      speak('He vaciado tu carrito');
+    // ===== COMANDO: LEER CATEGORÍAS =====
+    if (cmd.includes('categorías') || cmd.includes('categorias') || cmd.includes('qué categorías hay') || cmd.includes('que categorias hay')) {
+      const categoriasDisponibles = categories.filter(c => c !== 'todas');
+      if (categoriasDisponibles.length > 0) {
+        let mensaje = `Tenemos ${categoriasDisponibles.length} categorías: `;
+        categoriasDisponibles.forEach((cat, i) => {
+          mensaje += `${i + 1}. ${cat}. `;
+        });
+        mensaje += 'Di filtrar por seguido del nombre de la categoría para ver solo esos productos.';
+        speak(mensaje);
+      } else {
+        speak('No hay categorías disponibles.');
+      }
       clearTranscript();
       return;
     }
 
-    // Finalizar compra
-    if (cmd.includes('finalizar compra') || cmd.includes('terminar compra') || cmd.includes('comprar')) {
-      if (cartItems.length === 0) {
-        speak('Tu carrito está vacío. Agrega productos antes de finalizar la compra');
+    // ===== COMANDO: FILTRAR POR CATEGORÍA =====
+    if (cmd.includes('filtrar') || cmd.includes('categoría') || cmd.includes('categoria') || cmd.includes('mostrar solo')) {
+      const categoryMatch = categories.find(cat => 
+        cmd.includes(cat.toLowerCase()) && cat !== 'todas'
+      );
+      
+      if (categoryMatch) {
+        setSelectedCategory(categoryMatch);
+        const productosEnCategoria = allProducts.filter(p => p.category.toLowerCase() === categoryMatch.toLowerCase());
+        speak(`Mostrando ${productosEnCategoria.length} productos de la categoría ${categoryMatch}. Di leer productos para escucharlos.`);
+      } else if (cmd.includes('todas') || cmd.includes('todos')) {
+        setSelectedCategory('todas');
+        speak(`Mostrando todos los productos. Hay ${allProducts.length} productos disponibles.`);
       } else {
+        speak('No entendí qué categoría quieres filtrar. Di qué categorías hay para escuchar las categorías disponibles.');
+      }
+      clearTranscript();
+      return;
+    }
+
+    // ===== COMANDO: VACIAR CARRITO =====
+    if (cmd.includes('vaciar carrito') || cmd.includes('limpiar carrito') || cmd.includes('borrar carrito') || cmd.includes('eliminar todo del carrito')) {
+      if (cartItems.length === 0) {
+        speak('Tu carrito ya está vacío.');
+      } else {
+        const itemsCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        clearCart();
+        speak(`He vaciado tu carrito. Se eliminaron ${itemsCount} artículos.`);
+      }
+      clearTranscript();
+      return;
+    }
+
+    // ===== COMANDO: QUITAR/ELIMINAR PRODUCTO DEL CARRITO =====
+    if (cmd.includes('quitar') || cmd.includes('eliminar') || cmd.includes('remover')) {
+      const productMatches = cartItems.filter(item => 
+        cmd.includes(item.name.toLowerCase())
+      );
+
+      if (productMatches.length > 0) {
+        const item = productMatches[0];
+        removeFromCart(item.id);
+        speak(`He quitado ${item.name} del carrito.`);
+      } else {
+        speak('No encontré ese producto en el carrito. Di leer carrito para escuchar lo que tienes.');
+      }
+      clearTranscript();
+      return;
+    }
+
+    // ===== COMANDO: FINALIZAR COMPRA =====
+    if (cmd.includes('finalizar compra') || cmd.includes('terminar compra') || cmd.includes('comprar') || cmd.includes('pagar') || cmd.includes('proceder al pago')) {
+      if (cartItems.length === 0) {
+        speak('Tu carrito está vacío. Agrega productos antes de finalizar la compra. Di leer productos para conocer los productos disponibles.');
+      } else {
+        const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        speak(`Procediendo a finalizar la compra. Tienes ${totalItems} artículos. Total a pagar: ${totalPrice.toFixed(2)} pesos.`);
         handleCheckout();
       }
       clearTranscript();
       return;
     }
 
-    // Filtrar por categoría
-    const categoryMatch = categories.find(cat => 
-      cmd.includes(cat.toLowerCase())
-    );
-    if (categoryMatch && cmd.includes('categoría')) {
-      setSelectedCategory(categoryMatch);
-      speak(`Mostrando productos de ${categoryMatch}`);
+    // ===== COMANDO: TOTAL DEL CARRITO =====
+    if (cmd.includes('total') || cmd.includes('cuánto debo') || cmd.includes('cuanto debo') || cmd.includes('cuánto es') || cmd.includes('cuanto es')) {
+      if (cartItems.length === 0) {
+        speak('Tu carrito está vacío, el total es cero pesos.');
+      } else {
+        const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        speak(`El total de tu carrito es ${totalPrice.toFixed(2)} pesos por ${totalItems} artículos.`);
+      }
       clearTranscript();
       return;
     }
 
-    // Comando no reconocido
+    // ===== COMANDO NO RECONOCIDO =====
     if (cmd.length > 0) {
-      speak('No entendí ese comando. Prueba con: agregar producto, ver carrito, leer productos, o finalizar compra');
+      speak('No entendí ese comando. Di ayuda para escuchar todos los comandos disponibles.');
       clearTranscript();
     }
-  }, [products, cartItems, speak, clearTranscript, categories]);
+  }, [products, allProducts, cartItems, speak, clearTranscript, categories, setSearchQuery, setSelectedCategory]);
 
   // Efecto para procesar transcripciones
   useEffect(() => {
