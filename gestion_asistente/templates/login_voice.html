@@ -1,0 +1,714 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block contenido %}
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+
+    .login-container {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* Panel de asistente de voz */
+    .voice-assistant-panel {
+        width: 380px;
+        background: #1e40af;
+        color: white;
+        padding: 20px;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .voice-assistant-header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .voice-assistant-header h3 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .voice-assistant-header .mute-icon {
+        cursor: pointer;
+        font-size: 20px;
+        opacity: 0.8;
+        transition: opacity 0.3s;
+    }
+
+    .voice-assistant-header .mute-icon:hover {
+        opacity: 1;
+    }
+
+    /* Push-to-talk card */
+    .push-to-talk-card {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .push-to-talk-card h4 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .push-to-talk-card p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .push-to-talk-card .spacebar-text {
+        font-weight: bold;
+        font-size: 16px;
+        margin: 5px 0;
+    }
+
+    /* Botón presiona espacio */
+    .space-button {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 20px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform 0.2s;
+    }
+
+    .space-button:hover {
+        transform: translateY(-2px);
+    }
+
+    .space-button i {
+        font-size: 18px;
+    }
+
+    /* Transcript box */
+    .transcript-box {
+        background: white;
+        color: #333;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        min-height: 80px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .transcript-box h5 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .transcript-text {
+        font-size: 15px;
+        color: #000;
+        font-style: italic;
+        word-wrap: break-word;
+    }
+
+    /* Controles de velocidad y voz */
+    .voice-controls {
+        margin-bottom: 20px;
+    }
+
+    .voice-control-item {
+        margin-bottom: 15px;
+    }
+
+    .voice-control-item label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .voice-control-item input[type="range"],
+    .voice-control-item select {
+        width: 100%;
+        padding: 8px;
+        border-radius: 6px;
+        border: none;
+        background: rgba(255,255,255,0.9);
+    }
+
+    .voice-control-item .range-value {
+        text-align: center;
+        font-size: 12px;
+        margin-top: 5px;
+        opacity: 0.9;
+    }
+
+    /* Botones de ayuda y chat */
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+    }
+
+    .action-buttons button {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: transform 0.2s;
+    }
+
+    .action-buttons button:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-chat {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+    }
+
+    .btn-help {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+    }
+
+    /* Formulario de login */
+    .login-form-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 450px;
+        width: 100%;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .login-card h1 {
+        text-align: center;
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 32px;
+    }
+
+    .login-card p {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s;
+        margin-top: 10px;
+    }
+
+    .btn-login:hover {
+        transform: translateY(-2px);
+    }
+
+    .status-message {
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 14px;
+        display: none;
+    }
+
+    .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .login-container {
+            flex-direction: column;
+        }
+
+        .voice-assistant-panel {
+            width: 100%;
+            max-height: 300px;
+        }
+
+        .login-form-container {
+            padding: 20px;
+        }
+    }
+
+    /* Indicador de escucha */
+    .listening-indicator {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ef4444;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        animation: pulse 1.5s infinite;
+        z-index: 10000;
+    }
+
+    .listening-indicator.active {
+        display: block;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.05); }
+    }
+</style>
+
+<!-- Indicador de escucha -->
+<div class="listening-indicator" id="listeningIndicator">
+    <i class="fas fa-microphone"></i> Escuchando...
+</div>
+
+<div class="login-container">
+    <!-- Panel de Asistente de Voz -->
+    <div class="voice-assistant-panel">
+        <div class="voice-assistant-header">
+            <h3>
+                <i class="fas fa-robot"></i>
+                Asistente de Voz
+                <i class="fas fa-volume-up mute-icon" id="muteIcon" onclick="toggleMute()" title="Silenciar voz"></i>
+            </h3>
+        </div>
+
+        <!-- Push-to-Talk Card -->
+        <div class="push-to-talk-card">
+            <h4>
+                <i class="fas fa-keyboard"></i>
+                Push-to-Talk Activado
+            </h4>
+            <p class="spacebar-text">MANTÉN PRESIONADA LA BÁRRA ESPACIADORA</p>
+            <p>mientras hablas.</p>
+            <p style="margin-top: 5px;">Suéltala cuando termines de hablar.</p>
+        </div>
+
+        <!-- Botón de Espacio -->
+        <button class="space-button" id="spaceButton">
+            <i class="fas fa-keyboard"></i>
+            Presiona ESPACIO para hablar
+        </button>
+
+        <!-- Transcript Box -->
+        <div class="transcript-box">
+            <h5>
+                <i class="fas fa-comment"></i>
+                Lo que dijiste:
+            </h5>
+            <div class="transcript-text" id="transcriptText">
+                (Presiona espacio y habla...)
+            </div>
+        </div>
+
+        <!-- Controles de Voz -->
+        <div class="voice-controls">
+            <div class="voice-control-item">
+                <label>
+                    <i class="fas fa-tachometer-alt"></i>
+                    Velocidad: <span id="speedValue">1.0x</span>
+                </label>
+                <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1" oninput="updateSpeed(this.value)">
+            </div>
+
+            <div class="voice-control-item">
+                <label>
+                    <i class="fas fa-user"></i>
+                    Tipo de Voz:
+                </label>
+                <select id="voiceType" onchange="updateVoiceType()">
+                    <option value="predeterminada">Predeterminada</option>
+                    <option value="femenina">Femenina</option>
+                    <option value="masculina">Masculina</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="action-buttons">
+            <button class="btn-chat" onclick="showHelp()">
+                <i class="fas fa-question-circle"></i>
+                Ayuda
+            </button>
+        </div>
+    </div>
+
+    <!-- Formulario de Login -->
+    <div class="login-form-container">
+        <div class="login-card">
+            <h1>Vocal Cart</h1>
+            <p>Inicia sesión con tu voz</p>
+
+            <form method="post" id="loginForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Usuario
+                    </label>
+                    <input type="text" id="username" name="username" placeholder="Ingresa tu usuario" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Contraseña
+                    </label>
+                    <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                </button>
+
+                <div class="status-message" id="statusMessage"></div>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+                <p>💡 <strong>Tip:</strong> Presiona ESPACIO y di:<br>"mi usuario es juan" o "mi contraseña es 1234"</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let recognition;
+let synthesis = window.speechSynthesis;
+let voiceSpeed = 1.0;
+let voiceType = 'predeterminada';
+let isMuted = false;
+let isListening = false;
+
+// Inicializar Web Speech API
+function initSpeechRecognition() {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onstart = function() {
+            isListening = true;
+            document.getElementById('listeningIndicator').classList.add('active');
+            console.log('🎤 Reconocimiento iniciado');
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[event.results.length - 1][0].transcript;
+            document.getElementById('transcriptText').textContent = transcript;
+            
+            if (event.results[event.results.length - 1].isFinal) {
+                processVoiceCommand(transcript);
+            }
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Error de reconocimiento:', event.error);
+            if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                showStatus('Error: ' + event.error, 'error');
+            }
+        };
+
+        recognition.onend = function() {
+            isListening = false;
+            document.getElementById('listeningIndicator').classList.remove('active');
+            console.log('🛑 Reconocimiento detenido');
+        };
+    } else {
+        speak('Lo siento, tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+    }
+}
+
+// Función para hablar
+function speak(text) {
+    if (isMuted || !text) return;
+
+    synthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+    utterance.rate = voiceSpeed;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    const voices = synthesis.getVoices();
+    if (voices.length > 0) {
+        let selectedVoice = voices.find(v => v.lang.startsWith('es'));
+        
+        if (voiceType === 'femenina') {
+            selectedVoice = voices.find(v => 
+                v.name.includes('Monica') || 
+                v.name.includes('Helena') || 
+                v.name.toLowerCase().includes('female')
+            ) || selectedVoice;
+        } else if (voiceType === 'masculina') {
+            selectedVoice = voices.find(v => 
+                v.name.includes('Diego') || 
+                v.name.includes('Jorge') ||
+                v.name.toLowerCase().includes('male')
+            ) || selectedVoice;
+        }
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
+
+    utterance.onstart = () => console.log('🔊 Síntesis iniciada');
+    utterance.onend = () => console.log('✅ Síntesis completada');
+    utterance.onerror = (e) => console.error('❌ Error en síntesis:', e);
+
+    synthesis.speak(utterance);
+}
+
+// Procesar comandos de voz
+function processVoiceCommand(command) {
+    const cmd = command.toLowerCase().trim();
+    console.log('🎤 Comando recibido:', cmd);
+
+    // Comando: mi usuario es
+    if (cmd.includes('mi usuario es') || cmd.includes('usuario')) {
+        const username = cmd.replace(/mi usuario es|usuario|es/g, '').trim();
+        if (username) {
+            document.getElementById('username').value = username;
+            speak(`Usuario registrado: ${username}. Campo completado.`);
+            showStatus(`Usuario: ${username}`, 'success');
+        }
+        return;
+    }
+
+    // Comando: mi contraseña es
+    if (cmd.includes('mi contraseña es') || cmd.includes('mi password es') || cmd.includes('contraseña') || cmd.includes('password')) {
+        const password = cmd.replace(/mi contraseña es|mi password es|contraseña|password|es/g, '').trim().replace(/\s/g, '');
+        if (password) {
+            document.getElementById('password').value = password;
+            speak('Contraseña registrada. Campo completado.');
+            showStatus('Contraseña ingresada', 'success');
+        }
+        return;
+    }
+
+    // Comando: iniciar sesión / entrar / login
+    if (cmd.includes('iniciar sesión') || cmd.includes('entrar') || cmd.includes('login') || cmd.includes('ingresar')) {
+        speak('Iniciando sesión. Por favor espera.');
+        document.getElementById('loginForm').submit();
+        return;
+    }
+
+    // Comando: limpiar / borrar
+    if (cmd.includes('limpiar') || cmd.includes('borrar') || cmd.includes('vaciar')) {
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        speak('Formulario limpiado.');
+        showStatus('Campos borrados', 'success');
+        return;
+    }
+
+    // Comando: ayuda
+    if (cmd.includes('ayuda') || cmd.includes('comandos')) {
+        showHelp();
+        return;
+    }
+
+    // Comando no reconocido
+    if (cmd.length > 3) {
+        speak('No entendí ese comando. Di "ayuda" para escuchar los comandos disponibles.');
+    }
+}
+
+// Controles Push-to-Talk con barra espaciadora
+document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' && !isListening) {
+        const target = e.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        e.preventDefault();
+        
+        if (recognition) {
+            try {
+                recognition.start();
+            } catch (error) {
+                if (error.name !== 'InvalidStateError') {
+                    console.error('Error al iniciar:', error);
+                }
+            }
+        }
+    }
+});
+
+document.addEventListener('keyup', function(e) {
+    if (e.code === 'Space' && isListening) {
+        e.preventDefault();
+        
+        if (recognition) {
+            recognition.stop();
+        }
+    }
+});
+
+// Funciones de control
+function updateSpeed(value) {
+    voiceSpeed = parseFloat(value);
+    document.getElementById('speedValue').textContent = value + 'x';
+}
+
+function updateVoiceType() {
+    voiceType = document.getElementById('voiceType').value;
+    speak('Tipo de voz cambiado');
+}
+
+function toggleMute() {
+    isMuted = !isMuted;
+    const icon = document.getElementById('muteIcon');
+    
+    if (isMuted) {
+        icon.className = 'fas fa-volume-mute mute-icon';
+        synthesis.cancel();
+    } else {
+        icon.className = 'fas fa-volume-up mute-icon';
+        speak('Voz activada');
+    }
+}
+
+function showHelp() {
+    const helpText = `Comandos de voz disponibles:
+    1. Di "mi usuario es" seguido de tu nombre de usuario.
+    2. Di "mi contraseña es" seguido de tu contraseña.
+    3. Di "iniciar sesión" para enviar el formulario.
+    4. Di "limpiar" para borrar los campos.
+    Recuerda mantener presionada la barra espaciadora mientras hablas.`;
+    
+    speak(helpText);
+    showStatus('Ayuda leída en voz alta', 'success');
+}
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.textContent = message;
+    statusDiv.className = 'status-message ' + type;
+    statusDiv.style.display = 'block';
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+    }, 4000);
+}
+
+// Inicializar al cargar
+window.addEventListener('load', function() {
+    initSpeechRecognition();
+    
+    // Cargar voces
+    if (synthesis.onvoiceschanged !== undefined) {
+        synthesis.onvoiceschanged = () => {
+            const voices = synthesis.getVoices();
+            console.log('Voces cargadas:', voices.length);
+        };
+    }
+
+    // Mensaje de bienvenida
+    setTimeout(() => {
+        speak('Bienvenido a Vocal Cart. Mantén presionada la barra espaciadora para hablar. Di "ayuda" para escuchar los comandos disponibles.');
+    }, 1000);
+});
+</script>
+{% endblock %}

@@ -14,6 +14,7 @@ urlpatterns = [
    
     path('', views.home, name='casita'),
     path('login/', views.home, name='login'),
+    path('login-voice/', views.login_voice, name='login_voice'),
     path('registro/', views.registro, name='registrarse'),
     path('registrarse/', views.registro, name='registro'),
     path('', include(router.urls))

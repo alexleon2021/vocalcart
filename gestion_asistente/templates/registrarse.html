@@ -79,6 +79,24 @@
                     <span id="estado-voz-texto">Voz lista</span>
                 </small>
             </div>
+            
+            <!-- Transcript en tiempo real -->
+            <div class="transcript-container mt-2 p-2 rounded" style="background-color: rgba(255, 255, 255, 0.1); min-height: 30px;">
+                <small class="text-white-50">
+                    <i class="fas fa-microphone me-1"></i>Transcript:
+                </small>
+                <div id="transcript-voz" class="text-white small mt-1" style="min-height: 20px; font-style: italic;">
+                    Presiona ESPACIO para hablar...
+                </div>
+            </div>
+            
+            <!-- Instrucción Push-to-Talk -->
+            <div class="mt-2 p-2 rounded text-center" style="background-color: rgba(13, 202, 240, 0.2); border: 1px solid rgba(13, 202, 240, 0.4);">
+                <small class="text-info">
+                    <i class="fas fa-keyboard me-1"></i>
+                    <strong>Push-to-Talk:</strong> Mantén ESPACIO y habla
+                </small>
+            </div>
         </div>
     </div>
 </div>
@@ -377,21 +395,34 @@
                         <div class="card bg-light">
                             <div class="card-body">
                                 <h4 class="h6 mb-3" data-voz="Comandos de voz disponibles para el registro">🎤 Comandos de Voz:</h4>
+                                
+                                <!-- Instrucción Push-to-Talk destacada -->
+                                <div class="alert alert-primary mb-3" role="alert">
+                                    <strong><i class="fas fa-keyboard me-1"></i>Push-to-Talk:</strong>
+                                    <br>Mantén presionada la tecla <kbd>ESPACIO</kbd> y habla
+                                </div>
+                                
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-success btn-sm text-start" onclick="leerCamposFormulario()">
-                                        "Leer campos del formulario"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: mi usuario es, seguido de tu nombre de usuario')">
+                                        "mi usuario es [nombre]"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="leerRequisitos()">
-                                        "¿Qué necesito para registrarme?"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: mi email es, seguido de tu correo. Por ejemplo: danny arroba gmail punto com')">
+                                        "mi email es [correo]"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="ayudaContraseña()">
-                                        "Ayuda con contraseña"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: mi nombre es, seguido de tu nombre')">
+                                        "mi nombre es [tu nombre]"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para navegar entre campos usa la tecla Tab. Para activar o desactivar la voz usa Alt más V. Para abrir este asistente usa Alt más A.')">
-                                        "¿Cómo navegar?"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: registrar, para crear tu cuenta')">
+                                        "registrar"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Dime: mi nombre de usuario es, seguido del nombre que deseas. Por ejemplo: mi nombre de usuario es juan123')">
-                                        "¿Cómo llenar con voz?"
+                                    <button class="btn btn-primary btn-sm text-start" onclick="hablarTexto('Di: iniciar sesión, para volver al login')">
+                                        <i class="fas fa-sign-in-alt me-1"></i>"iniciar sesión"
+                                    </button>
+                                    <button class="btn btn-info btn-sm text-start" onclick="leerCamposFormulario()">
+                                        "leer campos"
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm text-start" onclick="hablarTexto('Di: ayuda, para obtener información')">
+                                        "ayuda"
                                     </button>
                                 </div>
                             </div>
@@ -537,6 +568,13 @@ let velocidadVoz = 1;
 let ultimoTextoHablado = '';
 let escuchandoComandos = false;
 
+// Variables para Vosk WebSocket (reconocimiento offline - IGUAL QUE LOGIN)
+let voskWebSocket = null;
+let audioContext = null;
+let mediaStream = null;
+let audioProcessor = null;
+let isPushToTalkActive = false;
+
 // Variables para el flujo de registro por voz
 let modoRegistroPorVoz = false;
 let datosRegistroVoz = {
@@ -559,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Anunciar carga de página después de un delay
     setTimeout(() => {
         if (vozHabilitada) {
-            hablarTexto('Página de registro VOCALCART cargada. Formulario optimizado para discapacidad visual. Usa Alt más A para abrir el asistente de voz. Usa Tab para navegar entre campos. Recuerda que los campos de contraseña deben ser llenados manualmente por seguridad.');
+            hablarTexto('Bienvenido a VOCALCART, tienda accesible. Página de registro cargada. Crea tu nueva cuenta usando comandos de voz. Presiona ESPACIO y di: mi usuario es, seguido de tu nombre de usuario. Si ya tienes cuenta, di: iniciar sesión.');
         }
     }, 1500);
     
@@ -567,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
     inicializarValidacionFormulario();
 });
 
-// Inicializar síntesis de voz
+// Inicializar síntesis de voz Y reconocimiento Vosk
 function inicializarVoz() {
     if ('speechSynthesis' in window) {
         // Configurar voces en español
@@ -611,44 +649,141 @@ function inicializarVoz() {
         cargarVoces();
         speechSynthesis.onvoiceschanged = cargarVoces;
         
-        // Configurar reconocimiento de voz
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            reconocimientoVoz = new SpeechRecognition();
-            reconocimientoVoz.continuous = true;
-            reconocimientoVoz.interimResults = true;
-            reconocimientoVoz.lang = 'es-ES';
+        // ========== NUEVO: Conectar a Vosk WebSocket (IGUAL QUE LOGIN) ==========
+        conectarVoskWebSocket();
+        
+        // Inicializar captura de audio
+        inicializarCapturaAudio();
+        
+    } else {
+        console.warn('Síntesis de voz no soportada en este navegador');
+    }
+}
+
+// ========== FUNCIONES VOSK WEBSOCKET (COPIADAS DEL LOGIN) ==========
+
+function conectarVoskWebSocket() {
+    try {
+        voskWebSocket = new WebSocket('ws://localhost:8000/ws/voice/');
+
+        voskWebSocket.onopen = () => {
+            console.log('✅ WebSocket Vosk conectado - Reconocimiento offline listo');
+            actualizarEstadoVoz('Presiona ESPACIO para hablar');
             
-            reconocimientoVoz.onresult = function(event) {
-                const ultima = event.results.length - 1;
-                const comando = event.results[ultima][0].transcript.toLowerCase().trim();
-                
-                if (event.results[ultima].isFinal) {
-                    procesarComandoVozRegistro(comando);
-                }
-            };
+            const transcriptElement = document.getElementById('transcript-voz');
+            if (transcriptElement) {
+                transcriptElement.textContent = 'Presiona ESPACIO para hablar...';
+                transcriptElement.style.color = '#10b981';
+            }
+        };
+
+        voskWebSocket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const transcriptElement = document.getElementById('transcript-voz');
             
-            reconocimientoVoz.onerror = function(event) {
-                console.error('Error en reconocimiento de voz:', event.error);
+            switch(data.type) {
+                case 'ready':
+                    console.log('🎤 Vosk listo:', data.message);
+                    break;
                 
-                let mensajeError = '';
-                switch(event.error) {
-                    case 'not-allowed':
-                    case 'permission-denied':
-                        mensajeError = 'Permiso denegado. Por favor, permite el acceso al micrófono en tu navegador.';
-                        actualizarEstadoVoz('Permiso denegado');
-                        break;
-                    case 'no-speech':
-                        mensajeError = 'No se detectó voz. Intenta hablar más cerca del micrófono.';
-                        actualizarEstadoVoz('No se detectó voz');
-                        break;
-                    case 'audio-capture':
-                        mensajeError = 'No se detectó micrófono. Verifica que tu micrófono esté conectado.';
-                        actualizarEstadoVoz('Sin micrófono');
-                        break;
-                    case 'network':
-                        mensajeError = 'Error de red. Verifica tu conexión a internet.';
-                        actualizarEstadoVoz('Error de red');
+                case 'partial':
+                    console.log('🎙️ Parcial:', data.transcript);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = data.transcript;
+                        transcriptElement.style.fontWeight = 'normal';
+                        transcriptElement.style.color = '#0dcaf0';
+                    }
+                    break;
+                
+                case 'result':
+                case 'final':
+                    console.log('✅ Final:', data.transcript);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = `✓ ${data.transcript}`;
+                        transcriptElement.style.fontWeight = 'bold';
+                        transcriptElement.style.color = '#10b981';
+                    }
+                    
+                    // Procesar el comando
+                    procesarComandoVozRegistro(data.transcript.toLowerCase().trim());
+                    break;
+                
+                case 'error':
+                    console.error('❌ Error Vosk:', data.message);
+                    actualizarEstadoVoz(`Error: ${data.message}`);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = `❌ Error: ${data.message}`;
+                        transcriptElement.style.color = '#dc3545';
+                    }
+                    break;
+            }
+        };
+
+        voskWebSocket.onerror = (error) => {
+            console.error('❌ Error WebSocket:', error);
+            actualizarEstadoVoz('Error de conexión');
+        };
+
+        voskWebSocket.onclose = () => {
+            console.log('🔌 WebSocket desconectado - Intentando reconectar...');
+            actualizarEstadoVoz('Reconectando...');
+            setTimeout(conectarVoskWebSocket, 3000);
+        };
+
+    } catch (error) {
+        console.error('❌ Error al conectar WebSocket:', error);
+    }
+}
+
+async function inicializarCapturaAudio() {
+    try {
+        console.log('🎤 Solicitando permisos de micrófono...');
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                channelCount: 1,
+                sampleRate: 16000,
+                echoCancellation: true,
+                noiseSuppression: true,
+            } 
+        });
+        
+        console.log('✅ Permisos de micrófono concedidos');
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 16000
+        });
+
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        audioProcessor.onaudioprocess = (e) => {
+            if (!isPushToTalkActive || !voskWebSocket || voskWebSocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            const audioData = e.inputBuffer.getChannelData(0);
+            const pcmData = new Int16Array(audioData.length);
+            
+            for (let i = 0; i < audioData.length; i++) {
+                pcmData[i] = Math.max(-1, Math.min(1, audioData[i])) * 0x7FFF;
+            }
+            
+            voskWebSocket.send(pcmData.buffer);
+        };
+        
+        source.connect(audioProcessor);
+        audioProcessor.connect(audioContext.destination);
+        
+        console.log('✅ Captura de audio inicializada');
+        hablarTexto('Sistema de reconocimiento de voz listo. Mantén presionada la barra espaciadora para hablar.');
+        
+    } catch (error) {
+        console.error('❌ Error al inicializar audio:', error);
+        hablarTexto('No se pudo acceder al micrófono. Verifica los permisos en tu navegador.');
+        actualizarEstadoVoz('Error: Sin acceso al micrófono');
+    }
+}
+
+// ========== FIN FUNCIONES VOSK ==========                        actualizarEstadoVoz('Error de red');
                         break;
                     default:
                         mensajeError = 'Error en reconocimiento de voz: ' + event.error;
@@ -724,7 +859,20 @@ function hablarTexto(texto, interrumpir = true) {
 
 // Configurar atajos de teclado
 function configurarAtajosTeclado() {
+    let spacebarPressed = false;
+    
     document.addEventListener('keydown', function(e) {
+        // Push-to-Talk: Spacebar para activar reconocimiento VOSK
+        if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (!spacebarPressed && vozHabilitada) {
+                spacebarPressed = true;
+                isPushToTalkActive = true; // Activar bandera para Vosk
+                actualizarEstadoVoz('🎙️ Escuchando...');
+                console.log('🎤 Push-to-Talk ACTIVADO');
+            }
+        }
+        
         // Alt + V: Activar/Desactivar voz
         if (e.altKey && e.key === 'v') {
             e.preventDefault();
@@ -746,6 +894,24 @@ function configurarAtajosTeclado() {
         if (e.key === 'Enter' && e.target.id === 'chat-input') {
             e.preventDefault();
             enviarMensajeConVoz();
+        }
+    });
+    
+    document.addEventListener('keyup', function(e) {
+        // Push-to-Talk: Soltar spacebar para detener reconocimiento VOSK
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (spacebarPressed) {
+                spacebarPressed = false;
+                isPushToTalkActive = false; // Desactivar bandera para Vosk
+                actualizarEstadoVoz('Voz lista');
+                console.log('🎤 Push-to-Talk DESACTIVADO');
+                
+                // Enviar comando final para procesar
+                if (voskWebSocket && voskWebSocket.readyState === WebSocket.OPEN) {
+                    voskWebSocket.send(JSON.stringify({ action: 'finish' }));
+                }
+            }
         }
     });
 }
@@ -828,7 +994,7 @@ function configurarCamposConVoz() {
 
 // Procesar comandos de voz específicos para registro
 function procesarComandoVozRegistro(comando) {
-    console.log('Comando recibido:', comando);
+    console.log('🎤 Comando recibido:', comando);
     
     // Si estamos en modo registro por voz, procesar el flujo
     if (modoRegistroPorVoz) {
@@ -836,64 +1002,199 @@ function procesarComandoVozRegistro(comando) {
         return;
     }
     
-    // Comando para iniciar registro por voz
-    if (comando.includes('registrarse por voz') || comando.includes('registro por voz') || comando.includes('crear cuenta por voz')) {
+    // ========== DETECCIÓN MEJORADA Y RÁPIDA ==========
+    
+    // Comando para nombre de usuario
+    if (comando.includes('mi usuario es') || 
+        comando.includes('mi nombre de usuario es') ||
+        comando.includes('usuario es') ||
+        comando.includes('nombre de usuario es')) {
+        
+        const patrones = ['mi usuario es', 'mi nombre de usuario es', 'usuario es', 'nombre de usuario es', 'usuario'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            document.getElementById('username').value = valorExtraido;
+            console.log('✅ Usuario establecido:', valorExtraido);
+            hablarTexto(`Usuario ${valorExtraido}`);
+            resaltarCampo('username');
+        }
+        return;
+    }
+    
+    // Comando para email
+    if (comando.includes('mi email es') || 
+        comando.includes('mi correo es') ||
+        comando.includes('email es') ||
+        comando.includes('correo es')) {
+        
+        const patrones = ['mi email es', 'mi correo es', 'email es', 'correo es', 'email', 'correo'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            // Convertir "arroba" a "@" y "punto" a "."
+            let emailFormateado = valorExtraido
+                .replace(/arroba/g, '@')
+                .replace(/\s+punto\s+/g, '.')
+                .replace(/\s+/g, '');
+            
+            document.getElementById('email').value = emailFormateado;
+            console.log('✅ Email establecido:', emailFormateado);
+            hablarTexto(`Email ${emailFormateado}`);
+            resaltarCampo('email');
+        }
+        return;
+    }
+    
+    // Comando para nombre
+    if (comando.includes('mi nombre es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi nombre es']);
+        if (valorExtraido) {
+            // Capitalizar primera letra
+            const nombreFormateado = valorExtraido.charAt(0).toUpperCase() + valorExtraido.slice(1);
+            document.getElementById('first_name').value = nombreFormateado;
+            console.log('✅ Nombre establecido:', nombreFormateado);
+            hablarTexto(`Nombre ${nombreFormateado}`);
+            resaltarCampo('first_name');
+        }
+        return;
+    }
+    
+    // Comando para apellido
+    if (comando.includes('mi apellido es')) {
+        const valorExtraido = extraerValorComando(comando, ['mi apellido es']);
+        if (valorExtraido) {
+            // Capitalizar primera letra
+            const apellidoFormateado = valorExtraido.charAt(0).toUpperCase() + valorExtraido.slice(1);
+            document.getElementById('last_name').value = apellidoFormateado;
+            console.log('✅ Apellido establecido:', apellidoFormateado);
+            hablarTexto(`Apellido ${apellidoFormateado}`);
+            resaltarCampo('last_name');
+        }
+        return;
+    }
+    
+    // Comando para contraseña
+    if (comando.includes('mi contraseña es') ||
+        comando.includes('mi clave es') ||
+        comando.includes('contraseña es')) {
+        
+        const patrones = ['mi contraseña es', 'mi clave es', 'contraseña es', 'contraseña'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            document.getElementById('password1').value = valorExtraido;
+            console.log('✅ Contraseña establecida');
+            hablarTexto('Contraseña ingresada');
+            resaltarCampo('password1');
+        }
+        return;
+    }
+    
+    // Comando para confirmar contraseña
+    if (comando.includes('confirmar contraseña') ||
+        comando.includes('repetir contraseña') ||
+        comando.includes('confirmar clave')) {
+        
+        const patrones = ['confirmar contraseña', 'repetir contraseña', 'confirmar clave'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            document.getElementById('password2').value = valorExtraido;
+            console.log('✅ Confirmación de contraseña establecida');
+            hablarTexto('Confirmación ingresada');
+            resaltarCampo('password2');
+        }
+        return;
+    }
+    
+    // Comando para registrarse
+    if (comando.includes('registrar') ||
+        comando.includes('crear cuenta') ||
+        comando.includes('registrarse')) {
+        
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const firstname = document.getElementById('first_name').value;
+        const lastname = document.getElementById('last_name').value;
+        const password1 = document.getElementById('password1').value;
+        const password2 = document.getElementById('password2').value;
+        
+        if (!username || !email || !firstname || !lastname || !password1 || !password2) {
+            hablarTexto('Falta completar algunos campos');
+            return;
+        }
+        
+        hablarTexto('Creando cuenta');
+        setTimeout(() => {
+            document.getElementById('registerForm').submit();
+        }, 500);
+        return;
+    }
+    
+    // Comando para limpiar
+    if (comando.includes('limpiar') || comando.includes('borrar')) {
+        document.getElementById('username').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('first_name').value = '';
+        document.getElementById('last_name').value = '';
+        document.getElementById('password1').value = '';
+        document.getElementById('password2').value = '';
+        hablarTexto('Campos limpiados');
+        return;
+    }
+    
+    // ========== NUEVO: Comandos para ir al login ==========
+    if (comando.includes('iniciar sesión') ||
+        comando.includes('ir al login') ||
+        comando.includes('ya tengo cuenta') ||
+        comando.includes('volver al login') ||
+        comando.includes('tengo cuenta')) {
+        
+        hablarTexto('Te llevaré a la página de inicio de sesión.');
+        setTimeout(() => {
+            window.location.href = '/login/';
+        }, 1500);
+        return;
+    }
+    
+    // Comando para iniciar registro por voz guiado
+    if (comando.includes('registrarse por voz') ||
+        comando.includes('registro por voz') ||
+        comando.includes('crear cuenta por voz')) {
         iniciarRegistroPorVoz();
         return;
     }
     
-    // Comando para nombre de usuario
-    if (comando.includes('mi nombre de usuario es') || comando.includes('usuario')) {
-        const valorExtraido = extraerValorComando(comando, ['mi nombre de usuario es', 'nombre de usuario']);
-        if (valorExtraido) {
-            document.getElementById('username').value = valorExtraido;
-            hablarTexto(`Nombre de usuario establecido como ${valorExtraido}`);
-            agregarMensajeChat('Usuario', comando);
-            agregarMensajeChat('Asistente', `He establecido tu nombre de usuario como "${valorExtraido}"`);
-        }
-    }
-    // Comando para email
-    else if (comando.includes('mi email es') || comando.includes('mi correo es')) {
-        const valorExtraido = extraerValorComando(comando, ['mi email es', 'mi correo es', 'email']);
-        if (valorExtraido) {
-            document.getElementById('email').value = valorExtraido;
-            hablarTexto(`Email establecido como ${valorExtraido}`);
-            agregarMensajeChat('Usuario', comando);
-            agregarMensajeChat('Asistente', `He establecido tu email como "${valorExtraido}"`);
-        }
-    }
-    // Comando para nombre
-    else if (comando.includes('mi nombre es')) {
-        const valorExtraido = extraerValorComando(comando, ['mi nombre es']);
-        if (valorExtraido) {
-            document.getElementById('first_name').value = valorExtraido;
-            hablarTexto(`Nombre establecido como ${valorExtraido}`);
-            agregarMensajeChat('Usuario', comando);
-            agregarMensajeChat('Asistente', `He establecido tu nombre como "${valorExtraido}"`);
-        }
-    }
-    // Comando para apellido
-    else if (comando.includes('mi apellido es')) {
-        const valorExtraido = extraerValorComando(comando, ['mi apellido es']);
-        if (valorExtraido) {
-            document.getElementById('last_name').value = valorExtraido;
-            hablarTexto(`Apellido establecido como ${valorExtraido}`);
-            agregarMensajeChat('Usuario', comando);
-            agregarMensajeChat('Asistente', `He establecido tu apellido como "${valorExtraido}"`);
-        }
-    }
     // Comandos informativos
-    else if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
+    if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
         leerCamposFormulario();
+        return;
     }
-    else if (comando.includes('contraseña') || comando.includes('password')) {
-        ayudaContraseña();
-    }
-    else if (comando.includes('leer') || comando.includes('campos')) {
+    
+    if (comando.includes('leer') || comando.includes('campos')) {
         leerCamposFormulario();
+        return;
     }
-    else if (comando.includes('requisitos') || comando.includes('necesito')) {
+    
+    if (comando.includes('requisitos') || comando.includes('necesito')) {
         leerRequisitos();
+        return;
+    }
+    
+    console.log('⚠️ Comando no reconocido:', comando);
+}
+
+// Función para resaltar campo con borde verde
+function resaltarCampo(campoId) {
+    const campo = document.getElementById(campoId);
+    if (campo) {
+        campo.style.borderColor = '#10b981';
+        campo.style.borderWidth = '2px';
+        setTimeout(() => {
+            campo.style.borderColor = '';
+            campo.style.borderWidth = '';
+        }, 2000);
     }
 }
 

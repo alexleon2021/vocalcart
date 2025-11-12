@@ -39,6 +39,12 @@ def home(request):
                 if user.groups.filter(name='admin').exists():
                     messages.success(request, f'¡Bienvenido administrador {user.username}! Has iniciado sesión exitosamente.')
                     return redirect('/admin')
+                if user.groups.filter(name='operador').exists():
+                    messages.success(request, f'¡Bienvenido administrador {user.username}! Has iniciado sesión exitosamente.')
+                    return redirect('/admin')
+                if user.groups.filter(name='usuario').exists():
+                    messages.success(request, f'¡Bienvenido administrador {user.username}! Has iniciado sesión exitosamente.')
+                    return redirect('http://localhost:5173/')
                 else:
                     messages.success(request, f'¡Bienvenido {user.username}! Has iniciado sesión exitosamente.')
                     return redirect('/productos/')
@@ -105,6 +111,33 @@ def registro(request):
         form = CustomUserCreationForm()
 
     return render(request, 'registrarse.html', {'form': form})
+
+def login_voice(request):
+    """Vista para login con interfaz de voz mejorada"""
+    if request.method == 'POST':
+        form = AuthenticationForm(request, request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                if user.groups.filter(name='admin').exists():
+                    messages.success(request, f'¡Bienvenido administrador {user.username}!')
+                    return redirect('/admin')
+                else:
+                    messages.success(request, f'¡Bienvenido {user.username}!')
+                    return redirect('/productos/')
+            else:
+                messages.error(request, 'Credenciales incorrectas.')
+                return render(request, 'login_voice.html', {'form': form})    
+        else:
+            messages.error(request, 'Por favor ingresa credenciales válidas.')
+            return render(request, 'login_voice.html', {'form': form})
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'login_voice.html', {'form': form})
 
 class asistenteView(viewsets.ModelViewSet):
     serializer_class = asistenteSerializer

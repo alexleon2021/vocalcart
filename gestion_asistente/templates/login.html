@@ -73,6 +73,24 @@
                     <span id="estado-voz-texto">Voz lista</span>
                 </small>
             </div>
+            
+            <!-- Transcript en tiempo real -->
+            <div class="transcript-container mt-2 p-2 rounded" style="background-color: rgba(255, 255, 255, 0.1); min-height: 30px;">
+                <small class="text-white-50">
+                    <i class="fas fa-microphone me-1"></i>Transcript:
+                </small>
+                <div id="transcript-voz" class="text-white small mt-1" style="min-height: 20px; font-style: italic;">
+                    Presiona ESPACIO para hablar...
+                </div>
+            </div>
+            
+            <!-- Instrucción Push-to-Talk -->
+            <div class="mt-2 p-2 rounded text-center" style="background-color: rgba(13, 202, 240, 0.2); border: 1px solid rgba(13, 202, 240, 0.4);">
+                <small class="text-info">
+                    <i class="fas fa-keyboard me-1"></i>
+                    <strong>Push-to-Talk:</strong> Mantén ESPACIO y habla
+                </small>
+            </div>
         </div>
     </div>
 </div>
@@ -109,8 +127,12 @@
             </div>
             
             <!-- Instrucciones de accesibilidad -->
-            <div class="alert alert-info small mb-3" role="alert" data-voz="Instrucciones: Usa Tab para navegar entre campos, Alt V para activar o desactivar voz, Alt A para abrir asistente">
-                🔊 <strong>Accesibilidad:</strong> Tab para navegar, Alt+V para voz, Alt+A para asistente
+            <div class="alert alert-info small mb-3" role="alert" data-voz="Instrucciones: Mantén Espacio para hablar, Tab para navegar entre campos, Alt V para activar o desactivar voz, Alt A para abrir asistente">
+                🔊 <strong>Accesibilidad:</strong> 
+                <kbd>ESPACIO</kbd> para hablar | 
+                <kbd>Tab</kbd> navegar | 
+                <kbd>Alt+V</kbd> voz | 
+                <kbd>Alt+A</kbd> asistente
             </div>
             
             <div class="form-floating mb-3">
@@ -136,13 +158,13 @@
                        id="password" 
                        placeholder="Contraseña" 
                        required
-                       data-voz="Campo contraseña. Por seguridad, este campo debe ser llenado manualmente"
+                       data-voz="Campo contraseña. Puedes usar el comando de voz: mi contraseña es, seguido de tu contraseña"
                        aria-describedby="ayuda-password">
                 <label for="password">
                     <i class="fas fa-lock me-2"></i>Contraseña
                 </label>
-                <div id="ayuda-password" class="form-text text-warning">
-                    🔒 <strong>Por seguridad:</strong> Este campo NO usa asistente de voz. Debes ingresar tu contraseña manualmente.
+                <div id="ayuda-password" class="form-text">
+                    🎤 Di "mi contraseña es..." para llenar con voz
                 </div>
             </div>
             <div class="d-grid gap-2 mb-3">
@@ -231,21 +253,34 @@
                         <div class="card bg-light">
                             <div class="card-body">
                                 <h4 class="h6 mb-3" data-voz="Comandos de voz disponibles para el inicio de sesión">🎤 Comandos de Voz:</h4>
+                                
+                                <!-- Instrucción Push-to-Talk destacada -->
+                                <div class="alert alert-primary mb-3" role="alert">
+                                    <strong><i class="fas fa-keyboard me-1"></i>Push-to-Talk:</strong>
+                                    <br>Mantén presionada la tecla <kbd>ESPACIO</kbd> y habla
+                                </div>
+                                
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-success btn-sm text-start" onclick="leerCamposFormulario()">
-                                        "Leer campos del formulario"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: mi usuario es, seguido de tu nombre de usuario. Por ejemplo: mi usuario es danny')">
+                                        "mi usuario es [nombre]"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para iniciar sesión necesitas tu nombre de usuario y contraseña. El nombre de usuario puede ser llenado con el asistente de voz, pero la contraseña debe ingresarse manualmente por seguridad.')">
-                                        "¿Cómo inicio sesión?"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: mi contraseña es, seguido de tu contraseña. Por ejemplo: mi contraseña es mi clave secreta')">
+                                        "mi contraseña es [clave]"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="ayudaContraseña()">
-                                        "Ayuda con contraseña"
+                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Di: iniciar sesión, para enviar el formulario')">
+                                        "iniciar sesión"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Para navegar entre campos usa la tecla Tab. Para activar o desactivar la voz usa Alt más V. Para abrir este asistente usa Alt más A.')">
-                                        "¿Cómo navegar?"
+                                    <button class="btn btn-primary btn-sm text-start" onclick="hablarTexto('Di: crear cuenta, para ir a la página de registro')">
+                                        <i class="fas fa-user-plus me-1"></i>"crear cuenta"
                                     </button>
-                                    <button class="btn btn-success btn-sm text-start" onclick="hablarTexto('Dime: mi usuario es, seguido de tu nombre de usuario. Por ejemplo: mi usuario es juan123')">
-                                        "¿Cómo llenar con voz?"
+                                    <button class="btn btn-warning btn-sm text-start" onclick="hablarTexto('Di: limpiar, para borrar todos los campos')">
+                                        "limpiar"
+                                    </button>
+                                    <button class="btn btn-info btn-sm text-start" onclick="leerCamposFormulario()">
+                                        "leer campos"
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm text-start" onclick="hablarTexto('Di: ayuda, para obtener información sobre los comandos disponibles')">
+                                        "ayuda"
                                     </button>
                                 </div>
                             </div>
@@ -391,6 +426,13 @@ let velocidadVoz = 1;
 let ultimoTextoHablado = '';
 let escuchandoComandos = false;
 
+// Variables para Vosk WebSocket (reconocimiento offline - MISMO QUE REACT)
+let voskWebSocket = null;
+let audioContext = null;
+let mediaStream = null;
+let audioProcessor = null;
+let isPushToTalkActive = false;
+
 // Variables para el flujo de inicio de sesión por voz
 let modoLoginPorVoz = false;
 let datosLoginVoz = {
@@ -409,12 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Anunciar carga de página después de un delay
     setTimeout(() => {
         if (vozHabilitada) {
-            hablarTexto('Página de inicio de sesión VOCALCART cargada. Formulario optimizado para discapacidad visual. Usa Alt más A para abrir el asistente de voz. Usa Tab para navegar entre campos. Recuerda que el campo de contraseña debe ser llenado manualmente por seguridad.');
+            hablarTexto('Bienvenido a VOCALCART, tienda accesible. Página de inicio de sesión cargada. Si no tienes cuenta, di: crear cuenta. Si ya tienes cuenta, presiona ESPACIO y di: mi usuario es, seguido de tu nombre.');
         }
     }, 1500);
 });
 
-// Inicializar síntesis de voz
+// Inicializar síntesis de voz Y reconocimiento Vosk
 function inicializarVoz() {
     if ('speechSynthesis' in window) {
         // Configurar voces en español
@@ -458,76 +500,153 @@ function inicializarVoz() {
         cargarVoces();
         speechSynthesis.onvoiceschanged = cargarVoces;
         
-        // Configurar reconocimiento de voz
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            reconocimientoVoz = new SpeechRecognition();
-            reconocimientoVoz.continuous = true;
-            reconocimientoVoz.interimResults = true;
-            reconocimientoVoz.lang = 'es-ES';
-            
-            reconocimientoVoz.onresult = function(event) {
-                const ultima = event.results.length - 1;
-                const comando = event.results[ultima][0].transcript.toLowerCase().trim();
-                
-                if (event.results[ultima].isFinal) {
-                    procesarComandoVozLogin(comando);
-                }
-            };
-            
-            reconocimientoVoz.onerror = function(event) {
-                console.error('Error en reconocimiento de voz:', event.error);
-                
-                let mensajeError = '';
-                switch(event.error) {
-                    case 'not-allowed':
-                    case 'permission-denied':
-                        mensajeError = 'Permiso denegado. Por favor, permite el acceso al micrófono en tu navegador.';
-                        actualizarEstadoVoz('Permiso denegado');
-                        break;
-                    case 'no-speech':
-                        mensajeError = 'No se detectó voz. Intenta hablar más cerca del micrófono.';
-                        actualizarEstadoVoz('No se detectó voz');
-                        break;
-                    case 'audio-capture':
-                        mensajeError = 'No se detectó micrófono. Verifica que tu micrófono esté conectado.';
-                        actualizarEstadoVoz('Sin micrófono');
-                        break;
-                    case 'network':
-                        mensajeError = 'Error de red. Verifica tu conexión a internet.';
-                        actualizarEstadoVoz('Error de red');
-                        break;
-                    default:
-                        mensajeError = 'Error en reconocimiento de voz: ' + event.error;
-                        actualizarEstadoVoz('Error: ' + event.error);
-                }
-                
-                console.warn(mensajeError);
-                // No hablar el error para evitar loops
-            };
-            
-            reconocimientoVoz.onstart = function() {
-                actualizarEstadoVoz('Escuchando...');
-                escuchandoComandos = true;
-                const statusVoz = document.getElementById('status-voz');
-                if (statusVoz) {
-                    statusVoz.className = 'status-indicator active';
-                }
-            };
-            
-            reconocimientoVoz.onend = function() {
-                actualizarEstadoVoz('Voz lista');
-                escuchandoComandos = false;
-                const statusVoz = document.getElementById('status-voz');
-                if (statusVoz) {
-                    statusVoz.className = 'status-indicator';
-                }
-            };
-        }
+        // ========== NUEVO: Conectar a Vosk WebSocket (IGUAL QUE REACT) ==========
+        conectarVoskWebSocket();
+        
+        // Inicializar captura de audio
+        inicializarCapturaAudio();
+        
     } else {
         console.warn('Síntesis de voz no soportada en este navegador');
     }
 }
+
+// ========== FUNCIONES VOSK WEBSOCKET (COPIADAS DE REACT) ==========
+
+function conectarVoskWebSocket() {
+    try {
+        voskWebSocket = new WebSocket('ws://localhost:8000/ws/voice/');
+
+        voskWebSocket.onopen = () => {
+            console.log('✅ WebSocket Vosk conectado - Reconocimiento offline listo');
+            actualizarEstadoVoz('Presiona ESPACIO para hablar');
+            const transcriptElement = document.getElementById('transcript-voz');
+            if (transcriptElement) {
+                transcriptElement.textContent = 'Presiona ESPACIO para hablar...';
+                transcriptElement.style.color = '#10b981';
+            }
+        };
+
+        voskWebSocket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const transcriptElement = document.getElementById('transcript-voz');
+            
+            switch(data.type) {
+                case 'ready':
+                    console.log('🎤 Vosk listo:', data.message);
+                    break;
+                
+                case 'partial':
+                    console.log('🎙️ Parcial:', data.transcript);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = data.transcript;
+                        transcriptElement.style.fontWeight = 'normal';
+                        transcriptElement.style.color = '#0dcaf0';
+                    }
+                    break;
+                
+                case 'result':
+                case 'final':
+                    console.log('✅ Final:', data.transcript);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = `✓ ${data.transcript}`;
+                        transcriptElement.style.fontWeight = 'bold';
+                        transcriptElement.style.color = '#10b981';
+                    }
+                    
+                    // Procesar el comando
+                    procesarComandoVozLogin(data.transcript.toLowerCase().trim());
+                    
+                    // Limpiar transcript después de 3 segundos
+                    setTimeout(() => {
+                        if (transcriptElement) {
+                            transcriptElement.textContent = 'Presiona ESPACIO para hablar...';
+                            transcriptElement.style.color = '#6c757d';
+                        }
+                    }, 3000);
+                    break;
+                
+                case 'error':
+                    console.error('❌ Error Vosk:', data.message);
+                    actualizarEstadoVoz(`Error: ${data.message}`);
+                    if (transcriptElement) {
+                        transcriptElement.textContent = `❌ Error: ${data.message}`;
+                        transcriptElement.style.color = '#ff6b6b';
+                    }
+                    break;
+            }
+        };
+
+        voskWebSocket.onerror = (error) => {
+            console.error('❌ Error WebSocket:', error);
+            actualizarEstadoVoz('Error de conexión');
+            const transcriptElement = document.getElementById('transcript-voz');
+            if (transcriptElement) {
+                transcriptElement.textContent = '❌ Error de conexión con servidor Vosk';
+                transcriptElement.style.color = '#ff6b6b';
+            }
+        };
+
+        voskWebSocket.onclose = () => {
+            console.log('🔌 WebSocket desconectado - Intentando reconectar...');
+            actualizarEstadoVoz('Reconectando...');
+            setTimeout(conectarVoskWebSocket, 3000);
+        };
+
+    } catch (error) {
+        console.error('❌ Error al conectar WebSocket:', error);
+    }
+}
+
+async function inicializarCapturaAudio() {
+    try {
+        console.log('🎤 Solicitando permisos de micrófono...');
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                channelCount: 1,
+                sampleRate: 16000,
+                echoCancellation: true,
+                noiseSuppression: true,
+            } 
+        });
+        
+        console.log('✅ Permisos de micrófono concedidos');
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 16000
+        });
+
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        audioProcessor.onaudioprocess = (e) => {
+            if (!isPushToTalkActive || !voskWebSocket || voskWebSocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            const audioData = e.inputBuffer.getChannelData(0);
+            const pcmData = new Int16Array(audioData.length);
+            
+            for (let i = 0; i < audioData.length; i++) {
+                pcmData[i] = Math.max(-1, Math.min(1, audioData[i])) * 0x7FFF;
+            }
+            
+            voskWebSocket.send(pcmData.buffer);
+        };
+        
+        source.connect(audioProcessor);
+        audioProcessor.connect(audioContext.destination);
+        
+        console.log('✅ Captura de audio inicializada');
+        hablarTexto('Sistema de reconocimiento de voz listo. Mantén presionada la barra espaciadora para hablar.');
+        
+    } catch (error) {
+        console.error('❌ Error al inicializar audio:', error);
+        hablarTexto('No se pudo acceder al micrófono. Verifica los permisos en tu navegador.');
+        actualizarEstadoVoz('Error: Sin acceso al micrófono');
+    }
+}
+
+// ========== FIN FUNCIONES VOSK ==========
 
 // Función principal para hablar texto
 function hablarTexto(texto, interrumpir = true) {
@@ -571,7 +690,26 @@ function hablarTexto(texto, interrumpir = true) {
 
 // Configurar atajos de teclado
 function configurarAtajosTeclado() {
+    let spacebarPressed = false;
+    
     document.addEventListener('keydown', function(e) {
+        // Push-to-Talk: Spacebar para activar reconocimiento VOSK
+        if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (!spacebarPressed && vozHabilitada) {
+                spacebarPressed = true;
+                isPushToTalkActive = true; // Activar bandera para Vosk
+                actualizarEstadoVoz('🎙️ Escuchando...');
+                console.log('🎤 Push-to-Talk ACTIVADO');
+                
+                const transcriptElement = document.getElementById('transcript-voz');
+                if (transcriptElement) {
+                    transcriptElement.textContent = '🎙️ Escuchando...';
+                    transcriptElement.style.color = '#0dcaf0';
+                }
+            }
+        }
+        
         // Alt + V: Activar/Desactivar voz
         if (e.altKey && e.key === 'v') {
             e.preventDefault();
@@ -593,6 +731,24 @@ function configurarAtajosTeclado() {
         if (e.key === 'Enter' && e.target.id === 'chat-input') {
             e.preventDefault();
             enviarMensajeConVoz();
+        }
+    });
+    
+    document.addEventListener('keyup', function(e) {
+        // Push-to-Talk: Soltar spacebar para detener reconocimiento VOSK
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (spacebarPressed) {
+                spacebarPressed = false;
+                isPushToTalkActive = false; // Desactivar bandera para Vosk
+                actualizarEstadoVoz('Voz lista');
+                console.log('🎤 Push-to-Talk DESACTIVADO');
+                
+                // Enviar comando final para procesar
+                if (voskWebSocket && voskWebSocket.readyState === WebSocket.OPEN) {
+                    voskWebSocket.send(JSON.stringify({ action: 'finish' }));
+                }
+            }
         }
     });
 }
@@ -666,7 +822,7 @@ function configurarCamposConVoz() {
 
 // Procesar comandos de voz específicos para login
 function procesarComandoVozLogin(comando) {
-    console.log('Comando recibido:', comando);
+    console.log('🎤 Comando recibido:', comando);
     
     // Si estamos en modo login por voz, procesar el flujo
     if (modoLoginPorVoz) {
@@ -674,32 +830,145 @@ function procesarComandoVozLogin(comando) {
         return;
     }
     
-    // Comando para iniciar login por voz
-    if (comando.includes('iniciar sesión por voz') || comando.includes('login por voz') || comando.includes('entrar por voz')) {
+    // ========== DETECCIÓN MEJORADA Y RÁPIDA ==========
+    
+    // Comando para nombre de usuario (con múltiples variantes)
+    if (comando.includes('mi usuario es') || 
+        comando.includes('mi nombre de usuario es') || 
+        comando.includes('usuario es') ||
+        comando.includes('mi usuario') ||
+        comando.includes('el usuario es')) {
+        
+        const patrones = ['mi usuario es', 'mi nombre de usuario es', 'usuario es', 'mi usuario', 'el usuario es', 'usuario'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            document.getElementById('username').value = valorExtraido;
+            console.log('✅ Usuario establecido:', valorExtraido);
+            
+            // Feedback inmediato
+            hablarTexto(`Usuario ${valorExtraido}`);
+            
+            // Actualizar UI
+            const usernameField = document.getElementById('username');
+            usernameField.style.borderColor = '#10b981';
+            usernameField.style.borderWidth = '2px';
+            setTimeout(() => {
+                usernameField.style.borderColor = '';
+                usernameField.style.borderWidth = '';
+            }, 2000);
+            
+            agregarMensajeChat('Usuario', comando);
+            agregarMensajeChat('Asistente', `✅ Usuario: "${valorExtraido}"`);
+        }
+        return;
+    }
+    
+    // Comando para contraseña (con múltiples variantes)
+    if (comando.includes('mi contraseña es') || 
+        comando.includes('mi clave es') || 
+        comando.includes('contraseña es') ||
+        comando.includes('mi contraseña') ||
+        comando.includes('la contraseña es') ||
+        comando.includes('password es')) {
+        
+        const patrones = ['mi contraseña es', 'mi clave es', 'contraseña es', 'mi contraseña', 'la contraseña es', 'password es', 'contraseña', 'clave'];
+        const valorExtraido = extraerValorComando(comando, patrones);
+        
+        if (valorExtraido) {
+            document.getElementById('password').value = valorExtraido;
+            console.log('✅ Contraseña establecida');
+            
+            // Feedback inmediato (sin revelar la contraseña)
+            hablarTexto('Contraseña ingresada');
+            
+            // Actualizar UI
+            const passwordField = document.getElementById('password');
+            passwordField.style.borderColor = '#10b981';
+            passwordField.style.borderWidth = '2px';
+            setTimeout(() => {
+                passwordField.style.borderColor = '';
+                passwordField.style.borderWidth = '';
+            }, 2000);
+            
+            agregarMensajeChat('Usuario', 'mi contraseña es ****');
+            agregarMensajeChat('Asistente', '✅ Contraseña establecida');
+        }
+        return;
+    }
+    
+    // Comando para iniciar sesión
+    if (comando.includes('iniciar sesión') || 
+        comando.includes('entrar') || 
+        comando.includes('login') ||
+        comando.includes('ingresar') ||
+        comando.includes('iniciar')) {
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (!username || !password) {
+            hablarTexto('Falta información. Necesito usuario y contraseña.');
+            return;
+        }
+        
+        hablarTexto('Iniciando sesión');
+        setTimeout(() => {
+            document.getElementById('loginForm').submit();
+        }, 500);
+        return;
+    }
+    
+    // Comando para limpiar campos
+    if (comando.includes('limpiar') || 
+        comando.includes('borrar') || 
+        comando.includes('resetear') ||
+        comando.includes('limpiar campos')) {
+        
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        hablarTexto('Campos limpiados');
+        agregarMensajeChat('Usuario', comando);
+        agregarMensajeChat('Asistente', '🗑️ Campos limpiados');
+        return;
+    }
+    
+    // ========== NUEVO: Comandos para crear cuenta ==========
+    if (comando.includes('crear cuenta') || 
+        comando.includes('registrarse') || 
+        comando.includes('registro') ||
+        comando.includes('nueva cuenta') ||
+        comando.includes('no tengo cuenta')) {
+        
+        hablarTexto('Te llevaré a la página de registro para crear tu cuenta.');
+        setTimeout(() => {
+            window.location.href = '/registro/';
+        }, 1500);
+        return;
+    }
+    
+    // Comando para iniciar login por voz guiado
+    if (comando.includes('iniciar sesión por voz') || 
+        comando.includes('login por voz') || 
+        comando.includes('entrar por voz') ||
+        comando.includes('sesión guiada')) {
         iniciarLoginPorVoz();
         return;
     }
     
-    // Comando para nombre de usuario
-    if (comando.includes('mi usuario es') || comando.includes('mi nombre de usuario es')) {
-        const valorExtraido = extraerValorComando(comando, ['mi usuario es', 'mi nombre de usuario es']);
-        if (valorExtraido) {
-            document.getElementById('username').value = valorExtraido;
-            hablarTexto(`Usuario establecido como ${valorExtraido}. Ahora debes ingresar tu contraseña manualmente por seguridad.`);
-            agregarMensajeChat('Usuario', comando);
-            agregarMensajeChat('Asistente', `He establecido tu usuario como "${valorExtraido}". Por favor, ingresa tu contraseña manualmente.`);
-        }
-    }
     // Comandos informativos
-    else if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
+    if (comando.includes('ayuda') || comando.includes('cómo') || comando.includes('como')) {
         leerCamposFormulario();
+        return;
     }
-    else if (comando.includes('contraseña') || comando.includes('password')) {
-        ayudaContraseña();
-    }
-    else if (comando.includes('leer') || comando.includes('campos')) {
+    
+    if (comando.includes('leer') || comando.includes('campos')) {
         leerCamposFormulario();
+        return;
     }
+    
+    // Si no reconoció el comando
+    console.log('⚠️ Comando no reconocido:', comando);
 }
 
 // Iniciar el proceso de login completamente por voz
@@ -818,34 +1087,12 @@ function ayudaContraseña() {
     agregarMensajeChat('Asistente', mensaje);
 }
 
+// NOTA: Esta función ya no se usa - ahora usamos Vosk WebSocket con Push-to-Talk
+// El reconocimiento se activa automáticamente al mantener presionada la barra espaciadora
 function iniciarReconocimientoVoz() {
-    if (reconocimientoVoz) {
-        try {
-            // Verificar si ya está escuchando
-            if (escuchandoComandos) {
-                hablarTexto('El reconocimiento de voz ya está activo');
-                return;
-            }
-            
-            reconocimientoVoz.start();
-            hablarTexto('Micrófono activado, puedes hablar ahora. Di: mi usuario es, seguido de tu nombre de usuario.');
-        } catch (error) {
-            console.error('Error al iniciar reconocimiento:', error);
-            let mensaje = 'No se pudo iniciar el reconocimiento de voz. ';
-            
-            if (error.name === 'InvalidStateError') {
-                mensaje += 'El reconocimiento ya está activo.';
-            } else {
-                mensaje += 'Verifica que tu navegador tenga permisos de micrófono.';
-            }
-            
-            hablarTexto(mensaje);
-            actualizarEstadoVoz('Error al iniciar');
-        }
-    } else {
-        hablarTexto('El reconocimiento de voz no está disponible en tu navegador. Usa Chrome, Edge o Safari para esta función.');
-        actualizarEstadoVoz('No disponible');
-    }
+    // Ya no necesitamos esta función - Vosk maneja todo automáticamente
+    console.log('ℹ️ Sistema Vosk activo - usa Push-to-Talk (ESPACIO)');
+    hablarTexto('Mantén presionada la barra espaciadora y habla');
 }
 
 function activarEscuchaDirecta() {
