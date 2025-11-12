@@ -1,0 +1,330 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+/**
+ * Hook personalizado para el asistente de voz
+ * Proporciona funcionalidades de reconocimiento de voz y síntesis de voz
+ * Basado en el sistema implementado en login.html
+ */
+export const useVoiceAssistant = () => {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState('Presiona ESPACIO para hablar');
+  const [selectedVoice, setSelectedVoice] = useState('predeterminada');
+  const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(window.speechSynthesis);
+  const isPushToTalkActiveRef = useRef(false); // Controla si está presionada la barra espaciadora
+  const isRecognitionRunningRef = useRef(false); // Controla si el reconocimiento está activo
+
+  // Inicializar voces disponibles
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = synthRef.current.getVoices();
+      setAvailableVoices(voices);
+    };
+
+    loadVoices();
+    if (synthRef.current.onvoiceschanged !== undefined) {
+      synthRef.current.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  // Inicializar reconocimiento de voz
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.warn('El navegador no soporta reconocimiento de voz');
+      setVoiceStatus('Reconocimiento de voz no disponible');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;  // Mantener escuchando continuamente
+    recognition.interimResults = true;  // Cambiar a true para mantener la conexión activa
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isRecognitionRunningRef.current = true;
+      setIsListening(true);
+      setVoiceStatus('🎤 Escuchando... (suelta ESPACIO para detener)');
+      console.log('✅ Push-to-Talk activado');
+    };
+
+    recognition.onend = () => {
+      isRecognitionRunningRef.current = false;
+      
+      // Si el usuario sigue presionando la barra espaciadora, reiniciar
+      if (isPushToTalkActiveRef.current) {
+        console.log('🔄 Manteniendo escucha activa (ESPACIO presionado)');
+        // Agregar un pequeño delay para evitar errores de "aborted"
+        setTimeout(() => {
+          if (isPushToTalkActiveRef.current && !isRecognitionRunningRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              if (!e.message?.includes('already started')) {
+                console.error('⚠️ Error al mantener escucha:', e.message);
+              }
+            }
+          }
+        }, 100);
+      } else {
+        setIsListening(false);
+        setVoiceStatus('Presiona ESPACIO para hablar');
+        console.log('🛑 Push-to-Talk desactivado');
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('❌ Error en reconocimiento de voz:', event.error);
+      
+      let errorMessage = 'Error en reconocimiento';
+      
+      switch(event.error) {
+        case 'not-allowed':
+        case 'permission-denied':
+          errorMessage = 'Permiso de micrófono denegado. Ve a la configuración del navegador y permite el acceso al micrófono.';
+          isPushToTalkActiveRef.current = false;
+          break;
+        case 'no-speech':
+          console.log('ℹ️ No se detectó voz');
+          return; // No mostrar error
+        case 'audio-capture':
+          errorMessage = 'No se encontró micrófono. Verifica que tu micrófono esté conectado.';
+          isPushToTalkActiveRef.current = false;
+          break;
+        case 'network':
+          errorMessage = 'Error de red. Verifica tu conexión a internet.';
+          console.error('🌐 Error de red al conectar con el servicio de reconocimiento');
+          isPushToTalkActiveRef.current = false;
+          setIsListening(false);
+          break;
+        case 'aborted':
+          // Error normal cuando se detiene rápidamente, no hacer nada
+          console.log('ℹ️ Reconocimiento cancelado');
+          return;
+        default:
+          errorMessage = `Error: ${event.error}`;
+      }
+      
+      setIsListening(false);
+      setVoiceStatus(errorMessage);
+    };
+
+    recognition.onresult = (event) => {
+      const result = event.results[event.results.length - 1];
+      const text = result[0].transcript.trim();
+      
+      // Actualizar transcript en tiempo real (tanto interim como final)
+      setTranscript(text);
+      console.log(`📝 ${result.isFinal ? 'FINAL' : 'INTERIM'}: "${text}"`);
+      
+      // Solo agregar al chat cuando es final
+      if (result.isFinal) {
+        addChatMessage('user', text.toLowerCase());
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      // Cleanup cuando el componente se desmonta
+      isPushToTalkActiveRef.current = false;
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Función para hablar texto
+  const speak = useCallback((text) => {
+    if (!isVoiceEnabled || !text) return;
+
+    try {
+      // Cancelar cualquier síntesis en curso
+      synthRef.current.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      utterance.rate = voiceSpeed;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // Seleccionar voz según preferencia
+      const voices = synthRef.current.getVoices();
+      console.log('🔊 Voces disponibles:', voices.length);
+      
+      let selectedVoiceObj = null;
+
+      if (voices.length > 0) {
+        // Intentar encontrar voz en español
+        selectedVoiceObj = voices.find(voice => 
+          voice.lang.startsWith('es')
+        );
+
+        // Si no hay voz en español, usar la primera disponible
+        if (!selectedVoiceObj) {
+          selectedVoiceObj = voices[0];
+        }
+
+        if (selectedVoice === 'femenina') {
+          const femaleVoice = voices.find(voice => 
+            voice.name.includes('Monica') || 
+            voice.name.includes('Helena') || 
+            voice.name.includes('Zira') ||
+            voice.name.toLowerCase().includes('female')
+          );
+          if (femaleVoice) selectedVoiceObj = femaleVoice;
+        } else if (selectedVoice === 'masculina') {
+          const maleVoice = voices.find(voice => 
+            voice.name.includes('Diego') || 
+            voice.name.includes('Jorge') ||
+            voice.name.toLowerCase().includes('male')
+          );
+          if (maleVoice) selectedVoiceObj = maleVoice;
+        }
+
+        if (selectedVoiceObj) {
+          utterance.voice = selectedVoiceObj;
+          console.log('🎤 Usando voz:', selectedVoiceObj.name);
+        }
+      } else {
+        console.warn('⚠️ No hay voces disponibles, síntesis podría no funcionar');
+      }
+
+      // Eventos para debugging
+      utterance.onstart = () => console.log('▶️ Síntesis iniciada');
+      utterance.onend = () => console.log('✅ Síntesis completada');
+      utterance.onerror = (e) => console.error('❌ Error en síntesis:', e.error);
+
+      synthRef.current.speak(utterance);
+      addChatMessage('assistant', text);
+    } catch (error) {
+      console.error('❌ Error al sintetizar voz:', error);
+    }
+  }, [isVoiceEnabled, voiceSpeed, selectedVoice]);
+
+  // Iniciar reconocimiento de voz (Push-to-Talk)
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current) {
+      console.error('Reconocimiento de voz no inicializado');
+      setVoiceStatus('Reconocimiento de voz no disponible');
+      return;
+    }
+
+    if (isRecognitionRunningRef.current) {
+      console.log('Ya está escuchando');
+      return;
+    }
+
+    isPushToTalkActiveRef.current = true;
+
+    try {
+      recognitionRef.current.start();
+      console.log('✅ Push-to-Talk iniciado');
+    } catch (error) {
+      if (!error.message?.includes('already started')) {
+        console.error('Error al iniciar reconocimiento:', error);
+        setVoiceStatus(`Error: ${error.message}`);
+        isPushToTalkActiveRef.current = false;
+      }
+    }
+  }, []);
+
+  // Detener reconocimiento de voz (Push-to-Talk)
+  const stopListening = useCallback(() => {
+    isPushToTalkActiveRef.current = false;
+    
+    if (recognitionRef.current && isRecognitionRunningRef.current) {
+      recognitionRef.current.stop();
+      console.log('🛑 Push-to-Talk detenido');
+    }
+  }, []);
+
+  // Alternar reconocimiento de voz
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [isListening, startListening, stopListening]);
+
+  // Agregar mensaje al chat
+  const addChatMessage = useCallback((sender, message) => {
+    setChatMessages(prev => [...prev, { sender, message, timestamp: new Date() }]);
+  }, []);
+
+  // Limpiar chat
+  const clearChat = useCallback(() => {
+    setChatMessages([]);
+  }, []);
+
+  // Limpiar transcripción
+  const clearTranscript = useCallback(() => {
+    setTranscript('');
+  }, []);
+
+  // Event listeners para Push-to-Talk con barra espaciadora
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Solo activar si es la barra espaciadora y no está en un input/textarea
+      if (e.code === 'Space' && 
+          !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName) &&
+          !e.target.isContentEditable &&
+          !isPushToTalkActiveRef.current) {
+        e.preventDefault(); // Evitar scroll de la página
+        e.stopPropagation(); // Evitar que el evento se propague
+        startListening();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space' && isPushToTalkActiveRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        stopListening();
+      }
+    };
+
+    // Usar capture: true para capturar el evento antes que otros handlers
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('keyup', handleKeyUp, { capture: true });
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('keyup', handleKeyUp, { capture: true });
+    };
+  }, [startListening, stopListening]);
+
+  return {
+    // Estados
+    isListening,
+    transcript,
+    voiceStatus,
+    selectedVoice,
+    voiceSpeed,
+    isVoiceEnabled,
+    availableVoices,
+    chatMessages,
+    
+    // Funciones
+    speak,
+    startListening,
+    stopListening,
+    toggleListening,
+    setSelectedVoice,
+    setVoiceSpeed,
+    setIsVoiceEnabled,
+    clearTranscript,
+    clearChat,
+    addChatMessage,
+  };
+};

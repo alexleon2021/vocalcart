@@ -31,7 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',  
+    'jazzmin',
+    'daphne',  # WebSocket support - debe estar PRIMERO
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     'vocalcart',
     'rest_framework',
     'corsheaders',
+    'channels',  # Django Channels
 ]
 
 MIDDLEWARE = [
@@ -303,3 +305,15 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# Django Channels Configuration
+ASGI_APPLICATION = 'vocalcart.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
+
+# Vosk Model Path
+VOSK_MODEL_PATH = str(BASE_DIR / 'vosk-model-small-es-0.42')

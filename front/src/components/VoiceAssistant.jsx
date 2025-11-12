@@ -68,15 +68,29 @@ export const VoiceAssistant = ({ onCommand }) => {
         </div>
 
         <div className="voice-controls">
-          {/* Botón principal de voz */}
-          <button
-            className={`btn-voice-main ${isListening ? 'listening' : ''}`}
-            onClick={toggleListening}
-            title="Alt+V para activar/desactivar"
-          >
-            <i className={`fas fa-microphone${isListening ? '-slash' : ''}`}></i>
-            <span>{isListening ? 'Escuchando...' : 'Activar Voz'}</span>
-          </button>
+          {/* Instrucciones Push-to-Talk */}
+          <div className="push-to-talk-instructions">
+            <h6>⌨️ Push-to-Talk Activado</h6>
+            <p>
+              <strong>Mantén presionada la BARRA ESPACIADORA</strong> mientras hablas.
+              <br />
+              Suéltala cuando termines de hablar.
+            </p>
+          </div>
+
+          {/* Indicador de estado */}
+          <div className="voice-status">
+            <div className={`status-indicator ${isListening ? 'active' : ''}`}></div>
+            <span>{voiceStatus}</span>
+          </div>
+
+          {/* Display de transcripción en tiempo real */}
+          {transcript && (
+            <div className="transcript-display">
+              <h6>📝 Lo que dijiste:</h6>
+              <p className="transcript-text">{transcript}</p>
+            </div>
+          )}
 
           {/* Control de velocidad */}
           <div className="voice-speed-control">
@@ -110,12 +124,6 @@ export const VoiceAssistant = ({ onCommand }) => {
               <option value="femenina">Femenina</option>
               <option value="masculina">Masculina</option>
             </select>
-          </div>
-
-          {/* Indicador de estado */}
-          <div className="voice-status">
-            <div className={`status-indicator ${isListening ? 'active' : ''}`}></div>
-            <span>{voiceStatus}</span>
           </div>
 
           {/* Botones de acción */}

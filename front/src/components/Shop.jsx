@@ -26,17 +26,18 @@ export const Shop = () => {
   
   const { speak, transcript, clearTranscript, startListening, isListening } = useVoiceAssistant();
 
-  // Activar reconocimiento de voz automáticamente al cargar
+  // Mensaje de bienvenida con síntesis de voz
   useEffect(() => {
-    // Esperar 1 segundo para que el usuario vea la interfaz primero
     const timer = setTimeout(() => {
-      if (!isListening) {
-        speak('Bienvenido a Vocal Cart. Haz clic en el botón de micrófono para activar el reconocimiento de voz y poder usar comandos como: agregar producto, ver carrito, o finalizar compra. También puedes decir ayuda en cualquier momento.');
-      }
-    }, 1000);
+      console.log('🎤 Bienvenido a Vocal Cart - Push-to-Talk activado');
+      console.log('⌨️ Mantén presionada la BARRA ESPACIADORA para hablar');
+      
+      // Hablar mensaje de bienvenida (usando Web Speech API synthesis)
+      speak('Bienvenido a Vocal Cart. Mantén presionada la barra espaciadora para hablar.');
+    }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [speak]);
 
   // Cargar categorías desde la API
   useEffect(() => {
@@ -387,13 +388,77 @@ export const Shop = () => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>
-            🎙️ ¡Activa tu voz para comenzar!
+            ⌨️ ¡Mantén presionada la BARRA ESPACIADORA para hablar!
           </h3>
           <p style={{ margin: '5px 0', fontSize: '1rem' }}>
-            Haz clic en el botón de <strong>micrófono</strong> en el panel flotante de la izquierda para activar los comandos de voz.
+            <strong>Push-to-Talk activado:</strong> Mantén presionada la <strong>BARRA ESPACIADORA ⎵</strong> mientras hablas, suéltala cuando termines.
           </p>
           <p style={{ margin: '5px 0', fontSize: '0.9rem', opacity: 0.9 }}>
             📢 Ejemplos: "agregar 5 manzanas", "ver carrito", "finalizar compra", "ayuda"
+          </p>
+        </div>
+      )}
+
+      {/* Display grande de transcripción en tiempo real */}
+      {isListening && (
+        <div style={{
+          backgroundColor: '#ffc107',
+          color: '#000',
+          padding: '20px',
+          margin: '20px auto',
+          maxWidth: '1200px',
+          borderRadius: '15px',
+          textAlign: 'center',
+          boxShadow: '0 4px 15px rgba(255, 193, 7, 0.5)',
+          border: '3px solid #fff',
+          animation: 'pulse 1.5s infinite'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
+            🎤 ESCUCHANDO... Habla ahora
+          </h3>
+          <p style={{ 
+            margin: '0', 
+            fontSize: transcript ? '2rem' : '1.2rem', 
+            fontWeight: 'bold',
+            background: 'rgba(0, 0, 0, 0.1)',
+            padding: '15px',
+            borderRadius: '10px',
+            minHeight: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {transcript || '⌨️ Mantén presionada la BARRA ESPACIADORA y habla...'}
+          </p>
+        </div>
+      )}
+
+      {/* Mostrar último comando procesado */}
+      {!isListening && transcript && (
+        <div style={{
+          backgroundColor: '#28a745',
+          color: 'white',
+          padding: '20px',
+          margin: '20px auto',
+          maxWidth: '1200px',
+          borderRadius: '15px',
+          textAlign: 'center',
+          boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)',
+          border: '3px solid #fff'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: 'bold' }}>
+            ✅ Comando procesado
+          </h3>
+          <p style={{ 
+            margin: '0', 
+            fontSize: '1.8rem', 
+            fontWeight: 'bold',
+            background: 'rgba(255, 255, 255, 0.2)',
+            padding: '15px',
+            borderRadius: '10px',
+            letterSpacing: '0.5px'
+          }}>
+            "{transcript}"
           </p>
         </div>
       )}

@@ -6,6 +6,29 @@
   padding-bottom: 100px;
 }
 
+/* Animación para el display de transcripción */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(255, 193, 7, 0.8);
+    transform: scale(1.02);
+  }
+}
+
 /* Header */
 .shop-header {
   background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);

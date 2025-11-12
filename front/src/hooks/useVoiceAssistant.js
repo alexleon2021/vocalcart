@@ -8,17 +8,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export const useVoiceAssistant = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [voiceStatus, setVoiceStatus] = useState('Voz lista');
+  const [voiceStatus, setVoiceStatus] = useState('Presiona ESPACIO para hablar');
   const [selectedVoice, setSelectedVoice] = useState('predeterminada');
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [availableVoices, setAvailableVoices] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
 
-  const recognitionRef = useRef(null);
+  // Referencias para Vosk WebSocket (reconocimiento offline)
+  const wsRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const audioProcessorRef = useRef(null);
+  const isPushToTalkActiveRef = useRef(false);
+  
+  // Referencia para Web Speech API (síntesis)
   const synthRef = useRef(window.speechSynthesis);
-  const shouldRestartRef = useRef(false); // Controla si debe reiniciarse automáticamente
-  const restartTimeoutRef = useRef(null); // Para gestionar el timeout de reinicio
 
   // Inicializar voces disponibles
   useEffect(() => {
@@ -33,149 +38,71 @@ export const useVoiceAssistant = () => {
     }
   }, []);
 
-  // Inicializar reconocimiento de voz
+  // Conectar WebSocket para reconocimiento offline con Vosk
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      console.warn('El navegador no soporta reconocimiento de voz');
-      setVoiceStatus('Reconocimiento de voz no disponible');
-      return;
-    }
+    const connectWebSocket = () => {
+      try {
+        wsRef.current = new WebSocket('ws://localhost:8000/ws/voice/');
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.continuous = true;  // Mantener escuchando continuamente
-    recognition.interimResults = true;  // Cambiar a true para mantener la conexión activa
-    recognition.maxAlternatives = 1;
+        wsRef.current.onopen = () => {
+          console.log('✅ WebSocket conectado - Reconocimiento offline (Vosk) listo');
+          setVoiceStatus('Presiona ESPACIO para hablar');
+        };
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setVoiceStatus('Escuchando...');
-      console.log('✅ Reconocimiento iniciado correctamente');
-    };
-
-    recognition.onend = () => {
-      console.log('🔴 Reconocimiento finalizado');
-      
-      // Solo reiniciar si el usuario NO lo detuvo manualmente
-      // Y si la página está visible (no minimizada)
-      if (shouldRestartRef.current && !document.hidden) {
-        console.log('🔄 Manteniendo reconocimiento activo...');
-        
-        // Limpiar timeout previo si existe
-        if (restartTimeoutRef.current) {
-          clearTimeout(restartTimeoutRef.current);
-        }
-        
-        // Reiniciar inmediatamente para mantener escucha continua
-        restartTimeoutRef.current = setTimeout(() => {
-          if (recognitionRef.current && shouldRestartRef.current) {
-            try {
-              recognitionRef.current.start();
-              setIsListening(true);
-              setVoiceStatus('Escuchando...');
-              console.log('✅ Escucha continua mantenida');
-            } catch (e) {
-              // Si ya está corriendo, no es un problema
-              if (e.message && e.message.includes('already started')) {
-                console.log('ℹ️ Reconocimiento ya estaba activo');
-                setIsListening(true);
-                setVoiceStatus('Escuchando...');
-              } else {
-                console.error('⚠️ Error al mantener escucha:', e.message);
-                setIsListening(false);
-                setVoiceStatus('Error al mantener reconocimiento');
-                shouldRestartRef.current = false;
-              }
-            }
+        wsRef.current.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          
+          switch(data.type) {
+            case 'ready':
+              console.log('🎤 Vosk listo:', data.message);
+              break;
+            
+            case 'partial':
+              console.log('� Parcial:', data.transcript);
+              setTranscript(data.transcript);
+              break;
+            
+            case 'result':
+            case 'final':
+              console.log('✅ Final:', data.transcript);
+              setTranscript(data.transcript);
+              addChatMessage('user', data.transcript);
+              break;
+            
+            case 'error':
+              console.error('❌ Error Vosk:', data.message);
+              setVoiceStatus(`Error: ${data.message}`);
+              break;
           }
-        }, 100); // Delay mínimo de 100ms
-      } else {
-        // Usuario detuvo manualmente
-        setIsListening(false);
-        setVoiceStatus('Voz lista');
+        };
+
+        wsRef.current.onerror = (error) => {
+          console.error('❌ Error WebSocket:', error);
+          setVoiceStatus('Error de conexión con el servidor');
+        };
+
+        wsRef.current.onclose = () => {
+          console.log('🔌 WebSocket desconectado');
+          setVoiceStatus('Reconexión...');
+          setTimeout(connectWebSocket, 3000);
+        };
+
+      } catch (error) {
+        console.error('❌ Error al conectar WebSocket:', error);
       }
     };
 
-    recognition.onerror = (event) => {
-      console.error('❌ Error en reconocimiento de voz:', event.error);
-      setIsListening(false);
-      
-      let errorMessage = 'Error en reconocimiento';
-      let shouldRetry = false;
-      
-      switch(event.error) {
-        case 'not-allowed':
-        case 'permission-denied':
-          errorMessage = 'Permiso de micrófono denegado. Ve a la configuración del navegador y permite el acceso al micrófono.';
-          break;
-        case 'no-speech':
-          // No es un error grave, solo significa que no hablaste
-          console.log('ℹ️ No se detectó voz - esto es normal');
-          errorMessage = 'Esperando que hables...';
-          shouldRetry = true;
-          break;
-        case 'audio-capture':
-          errorMessage = 'No se encontró micrófono. Verifica que tu micrófono esté conectado.';
-          break;
-        case 'network':
-          errorMessage = 'Error de red. Verifica tu conexión a internet o intenta en modo incógnito.';
-          console.error('🌐 Error de red - posibles causas:');
-          console.error('   1. Sin conexión a internet');
-          console.error('   2. Firewall bloqueando Google Speech API');
-          console.error('   3. Extensiones del navegador bloqueando la conexión');
-          console.error('   4. Problema con servicios de Google');
-          console.error('💡 Solución: Intenta abrir el navegador en modo incógnito');
-          shouldRetry = false;
-          // Desactivar auto-reinicio si hay error de red
-          shouldRestartRef.current = false;
-          break;
-        case 'aborted':
-          // Usuario detuvo manualmente, no es un error
-          console.log('ℹ️ Reconocimiento detenido por el usuario');
-          shouldRestartRef.current = false;
-          return;
-        case 'service-not-allowed':
-          errorMessage = 'Servicio de reconocimiento no permitido. Necesitas HTTPS o localhost.';
-          shouldRestartRef.current = false;
-          break;
-        default:
-          errorMessage = `Error desconocido: ${event.error}`;
-      }
-      
-      setVoiceStatus(errorMessage);
-      
-      // Mostrar error en consola con más detalles
-      console.error('📊 Detalles del error de voz:', {
-        error: event.error,
-        message: event.message,
-        timestamp: new Date().toISOString(),
-        shouldRetry: shouldRetry
-      });
-    };
-
-    recognition.onresult = (event) => {
-      const result = event.results[event.results.length - 1];
-      if (result.isFinal) {
-        const text = result[0].transcript.toLowerCase().trim();
-        setTranscript(text);
-        addChatMessage('user', text);
-      }
-    };
-
-    recognitionRef.current = recognition;
+    connectWebSocket();
 
     return () => {
-      // Cleanup cuando el componente se desmonta
-      shouldRestartRef.current = false;
-      
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
+      if (wsRef.current) {
+        wsRef.current.close();
       }
-      
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
@@ -184,100 +111,166 @@ export const useVoiceAssistant = () => {
   const speak = useCallback((text) => {
     if (!isVoiceEnabled || !text) return;
 
-    // Cancelar cualquier síntesis en curso
-    synthRef.current.cancel();
+    try {
+      // Cancelar cualquier síntesis en curso
+      synthRef.current.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    utterance.rate = voiceSpeed;
-    utterance.pitch = 1;
-    utterance.volume = 1;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      utterance.rate = voiceSpeed;
+      utterance.pitch = 1;
+      utterance.volume = 1;
 
-    // Seleccionar voz según preferencia
-    const voices = synthRef.current.getVoices();
-    let selectedVoiceObj = null;
+      // Seleccionar voz según preferencia
+      const voices = synthRef.current.getVoices();
+      console.log('🔊 Voces disponibles:', voices.length);
+      
+      let selectedVoiceObj = null;
 
-    if (selectedVoice === 'femenina') {
-      selectedVoiceObj = voices.find(voice => 
-        voice.name.includes('Monica') || 
-        voice.name.includes('Helena') || 
-        voice.name.includes('Zira')
-      );
-    } else if (selectedVoice === 'masculina') {
-      selectedVoiceObj = voices.find(voice => 
-        voice.name.includes('Diego') || 
-        voice.name.includes('Jorge')
-      );
+      if (voices.length > 0) {
+        // Intentar encontrar voz en español
+        selectedVoiceObj = voices.find(voice => 
+          voice.lang.startsWith('es')
+        );
+
+        // Si no hay voz en español, usar la primera disponible
+        if (!selectedVoiceObj) {
+          selectedVoiceObj = voices[0];
+        }
+
+        if (selectedVoice === 'femenina') {
+          const femaleVoice = voices.find(voice => 
+            voice.name.includes('Monica') || 
+            voice.name.includes('Helena') || 
+            voice.name.includes('Zira') ||
+            voice.name.toLowerCase().includes('female')
+          );
+          if (femaleVoice) selectedVoiceObj = femaleVoice;
+        } else if (selectedVoice === 'masculina') {
+          const maleVoice = voices.find(voice => 
+            voice.name.includes('Diego') || 
+            voice.name.includes('Jorge') ||
+            voice.name.toLowerCase().includes('male')
+          );
+          if (maleVoice) selectedVoiceObj = maleVoice;
+        }
+
+        if (selectedVoiceObj) {
+          utterance.voice = selectedVoiceObj;
+          console.log('🎤 Usando voz:', selectedVoiceObj.name);
+        }
+      } else {
+        console.warn('⚠️ No hay voces disponibles, síntesis podría no funcionar');
+      }
+
+      // Eventos para debugging
+      utterance.onstart = () => console.log('▶️ Síntesis iniciada');
+      utterance.onend = () => console.log('✅ Síntesis completada');
+      utterance.onerror = (e) => console.error('❌ Error en síntesis:', e.error);
+
+      synthRef.current.speak(utterance);
+      addChatMessage('assistant', text);
+    } catch (error) {
+      console.error('❌ Error al sintetizar voz:', error);
     }
-
-    if (selectedVoiceObj) {
-      utterance.voice = selectedVoiceObj;
-    }
-
-    synthRef.current.speak(utterance);
-    addChatMessage('assistant', text);
   }, [isVoiceEnabled, voiceSpeed, selectedVoice]);
 
-  // Iniciar reconocimiento de voz
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) {
-      console.error('Reconocimiento de voz no inicializado');
-      setVoiceStatus('Reconocimiento de voz no disponible en este navegador');
+  // Inicializar captura de audio del micrófono para Vosk
+  const initAudioCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        } 
+      });
+      
+      mediaStreamRef.current = stream;
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 16000
+      });
+
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      
+      processor.onaudioprocess = (e) => {
+        if (!isPushToTalkActiveRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcmData = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        wsRef.current.send(pcmData.buffer);
+      };
+
+      source.connect(processor);
+      processor.connect(audioContextRef.current.destination);
+      audioProcessorRef.current = processor;
+
+      console.log('🎤 Audio capturado correctamente (16kHz mono)');
+      return true;
+
+    } catch (error) {
+      console.error('❌ Error al capturar audio:', error);
+      setVoiceStatus('Error: No se puede acceder al micrófono');
+      return false;
+    }
+  };
+
+  // Iniciar reconocimiento de voz (Push-to-Talk)
+  const startListening = useCallback(async () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.error('❌ WebSocket no conectado');
+      setVoiceStatus('Error: Servidor no conectado');
       return;
     }
 
-    if (isListening) {
+    if (isPushToTalkActiveRef.current) {
       console.log('Ya está escuchando');
       return;
     }
 
-    // Activar flag de reinicio automático
-    shouldRestartRef.current = true;
+    isPushToTalkActiveRef.current = true;
 
-    try {
-      // Detener cualquier instancia previa
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        // Ignorar error si no estaba corriendo
+    if (!audioContextRef.current) {
+      const success = await initAudioCapture();
+      if (!success) {
+        isPushToTalkActiveRef.current = false;
+        return;
       }
-      
-      // Pequeño delay para asegurar que se detuvo
-      setTimeout(() => {
-        try {
-          recognitionRef.current.start();
-          console.log('✅ Reconocimiento de voz iniciado correctamente');
-          console.log('🔄 Auto-reinicio activado');
-        } catch (error) {
-          console.error('Error al iniciar reconocimiento (intento 2):', error);
-          setVoiceStatus(`Error al iniciar: ${error.message}`);
-          shouldRestartRef.current = false;
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Error al iniciar reconocimiento:', error);
-      setVoiceStatus(`Error al iniciar reconocimiento: ${error.message}`);
-      shouldRestartRef.current = false;
     }
-  }, [isListening]);
 
-  // Detener reconocimiento de voz
+    setIsListening(true);
+    setVoiceStatus('🎤 Escuchando... (suelta ESPACIO para detener)');
+    setTranscript('');
+
+    wsRef.current.send(JSON.stringify({ type: 'start' }));
+    console.log('✅ Push-to-Talk activado (Vosk offline)');
+  }, []);
+
+  // Detener reconocimiento de voz (Push-to-Talk)
   const stopListening = useCallback(() => {
-    // Desactivar flag de reinicio automático
-    shouldRestartRef.current = false;
-    
-    // Limpiar timeout de reinicio si existe
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
+    if (!isPushToTalkActiveRef.current) {
+      return;
     }
-    
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      console.log('🛑 Reconocimiento detenido por el usuario');
-      console.log('🔄 Auto-reinicio desactivado');
+
+    isPushToTalkActiveRef.current = false;
+    setIsListening(false);
+    setVoiceStatus('Presiona ESPACIO para hablar');
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'stop' }));
     }
-  }, [isListening]);
+
+    console.log('🛑 Push-to-Talk desactivado');
+  }, []);
 
   // Alternar reconocimiento de voz
   const toggleListening = useCallback(() => {
@@ -302,6 +295,59 @@ export const useVoiceAssistant = () => {
   const clearTranscript = useCallback(() => {
     setTranscript('');
   }, []);
+
+  // Event listeners para Push-to-Talk con barra espaciadora
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code !== 'Space') return;
+
+      const target = e.target;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'BUTTON' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (!isPushToTalkActiveRef.current) {
+        e.preventDefault();
+      }
+
+      startListening();
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code !== 'Space') return;
+
+      const target = e.target;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'BUTTON' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (isPushToTalkActiveRef.current) {
+        e.preventDefault();
+      }
+
+      stopListening();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [startListening, stopListening]);
 
   return {
     // Estados

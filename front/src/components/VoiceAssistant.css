@@ -60,6 +60,36 @@
   gap: 15px;
 }
 
+/* Instrucciones Push-to-Talk */
+.push-to-talk-instructions {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  text-align: center;
+}
+
+.push-to-talk-instructions h6 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.push-to-talk-instructions p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.push-to-talk-instructions strong {
+  color: #ffeb3b;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
 /* Botón principal de voz */
 .btn-voice-main {
   background: white;
@@ -163,6 +193,59 @@
 }
 
 /* Indicador de estado */
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* Display de transcripción en tiempo real */
+.transcript-display {
+  background: rgba(255, 255, 255, 0.95);
+  color: #007bff;
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s ease-out;
+}
+
+.transcript-display h6 {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: #0056b3;
+  font-weight: 600;
+}
+
+.transcript-text {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.5;
+  word-wrap: break-word;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 5px;
+  border-left: 4px solid #28a745;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Continuar con estilos existentes */
 .voice-status {
   display: flex;
   align-items: center;
