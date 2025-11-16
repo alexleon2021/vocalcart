@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { VoiceAssistant } from '../components/VoiceAssistant';
 import { VoiceDiagnostics } from '../components/VoiceDiagnostics';
@@ -23,6 +23,10 @@ export const Shop = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  
+  // Control de comandos procesados para evitar duplicados
+  const lastProcessedCommand = useRef('');
+  const lastProcessedTime = useRef(0);
   
   const { speak, transcript, clearTranscript, startListening, isListening } = useVoiceAssistant();
 
@@ -99,6 +103,17 @@ export const Shop = () => {
   const processVoiceCommand = useCallback((command) => {
     const cmd = command.toLowerCase().trim();
     console.log('🎤 Comando recibido:', cmd);
+    
+    // Prevenir procesamiento duplicado del mismo comando
+    const now = Date.now();
+    if (cmd === lastProcessedCommand.current && (now - lastProcessedTime.current) < 2000) {
+      console.log('⏭️ Comando duplicado ignorado (mismo comando en <2s)');
+      return;
+    }
+    
+    lastProcessedCommand.current = cmd;
+    lastProcessedTime.current = now;
+    console.log('✅ Comando aceptado para procesamiento');
 
     // ===== COMANDO: AYUDA =====
     if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir') || cmd.includes('que puedo decir')) {
@@ -148,6 +163,7 @@ export const Shop = () => {
       const parteRelevante = comandoPartes[1] ? comandoPartes[1].trim() : '';
       
       console.log('📝 Parte relevante del comando:', parteRelevante);
+      console.log('🔍 Buscando cantidad en:', parteRelevante);
       
       // Primero buscar número en dígitos (más confiable)
       const digitMatch = parteRelevante.match(/\b(\d+)\b/);
@@ -159,6 +175,7 @@ export const Shop = () => {
       
       // Si no hay dígito, buscar números en palabras
       if (!cantidadDetectada) {
+        console.log('⚠️ No se encontró dígito, buscando en palabras...');
         // Primero buscar números compuestos (más específicos)
         const numerosOrdenados = Object.entries(numberWords).sort((a, b) => b[0].length - a[0].length);
         
@@ -167,7 +184,7 @@ export const Shop = () => {
           if (regex.test(parteRelevante)) {
             cantidad = numero;
             cantidadDetectada = true;
-            console.log('✅ Cantidad detectada (palabra):', cantidad, `(${palabra})`);
+            console.log('✅ Cantidad detectada (palabra):', cantidad, `"${palabra}"`);
             break;
           }
         }
@@ -190,6 +207,8 @@ export const Shop = () => {
       }
       
       console.log('🔢 Cantidad final a agregar:', cantidad);
+      console.log('🔢 Tipo de dato:', typeof cantidad);
+      console.log('🔢 Valor numérico verificado:', Number(cantidad));
 
       // Buscar producto por nombre o categoría
       const productMatches = products.filter(p => 
@@ -200,6 +219,7 @@ export const Shop = () => {
       if (productMatches.length > 0) {
         const product = productMatches[0];
         console.log('🎯 Producto encontrado:', product.name);
+        console.log('🔢 IMPORTANTE: Cantidad que se va a usar:', cantidad);
         
         // Verificar stock disponible
         const currentInCart = cartItems.find(item => item.id === product.id)?.quantity || 0;
@@ -213,49 +233,45 @@ export const Shop = () => {
           return;
         }
         
-        console.log(`📦 Agregando ${cantidad} unidades de ${product.name} al carrito...`);
+        console.log(`📦 Agregando EXACTAMENTE ${cantidad} unidades de ${product.name} al carrito...`);
+        console.log(`🔢 CANTIDAD A AGREGAR: ${cantidad} (tipo: ${typeof cantidad})`);
         
-        // Agregar la cantidad especificada
-        for (let i = 0; i < cantidad; i++) {
-          addToCart(product);
-        }
+        // IMPORTANTE: Capturar la cantidad en una constante para evitar que se modifique
+        const cantidadFinal = Number(cantidad);
+        console.log(`🔒 CANTIDAD BLOQUEADA: ${cantidadFinal}`);
         
-        const totalInCart = currentInCart + cantidad;
-        const precioTotal = product.price * cantidad;
+        // Agregar la cantidad especificada de una sola vez
+        const existingItem = cartItems.find(item => item.id === product.id);
         
-        // Mensaje de confirmación mejorado y más claro
-        let mensaje = '';
+        console.log(`📋 Producto existente en carrito:`, existingItem ? `Sí (${existingItem.quantity} unidades)` : 'No');
         
-        // Anunciar cantidad agregada
-        if (cantidad === 1) {
-          mensaje = `Listo. Agregué una unidad de ${product.name} al carrito. `;
-        } else if (cantidad === 2) {
-          mensaje = `Listo. Agregué dos unidades de ${product.name} al carrito. `;
-        } else if (cantidad === 3) {
-          mensaje = `Listo. Agregué tres unidades de ${product.name} al carrito. `;
-        } else if (cantidad === 4) {
-          mensaje = `Listo. Agregué cuatro unidades de ${product.name} al carrito. `;
-        } else if (cantidad === 5) {
-          mensaje = `Listo. Agregué cinco unidades de ${product.name} al carrito. `;
+        if (existingItem) {
+          // Si ya existe, actualizar la cantidad sumando la nueva cantidad
+          const nuevaCantidad = existingItem.quantity + cantidadFinal;
+          console.log(`➕ Sumando ${cantidadFinal} a las ${existingItem.quantity} existentes = ${nuevaCantidad}`);
+          setCartItems(cartItems.map(item =>
+            item.id === product.id
+              ? { ...item, quantity: nuevaCantidad }
+              : item
+          ));
         } else {
-          mensaje = `Listo. Agregué ${cantidad} unidades de ${product.name} al carrito. `;
+          // Si no existe, agregar con la cantidad especificada
+          console.log(`🆕 Creando nuevo item con cantidad: ${cantidadFinal}`);
+          setCartItems([...cartItems, { ...product, quantity: cantidadFinal }]);
         }
         
-        // Información de precio
-        if (cantidad > 1) {
-          mensaje += `Precio unitario: ${product.price} pesos. Total: ${precioTotal.toFixed(2)} pesos. `;
-        } else {
-          mensaje += `Precio: ${product.price} pesos. `;
-        }
+        const totalInCart = currentInCart + cantidadFinal;
+        const precioTotal = product.price * cantidadFinal;
         
-        // Total en el carrito
-        mensaje += `Ahora tienes ${totalInCart} ${totalInCart === 1 ? 'unidad' : 'unidades'} de este producto.`;
+        console.log(`✅ CONFIRMACIÓN: Se agregaron ${cantidadFinal} unidades`);
+        console.log(`📊 Total en carrito ahora: ${totalInCart} unidades de ${product.name}`);
         
-        console.log(`✅ Agregado exitosamente: ${cantidad} x ${product.name}`);
+        // Mensaje de confirmación ULTRA CORTO
+        speak(`${cantidadFinal} ${product.name}. Total ${totalInCart}.`);
+        
+        console.log(`✅ Agregado exitosamente: ${cantidadFinal} x ${product.name}`);
         console.log(`💰 Precio total: ${precioTotal.toFixed(2)} pesos`);
         console.log(`🛒 Total en carrito de este producto: ${totalInCart} unidades`);
-        
-        speak(mensaje);
       } else {
         console.log('❌ Producto no encontrado en el comando:', cmd);
         speak('No encontré ese producto. Por favor, di leer productos para escuchar los productos disponibles.');
