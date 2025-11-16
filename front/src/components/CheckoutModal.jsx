@@ -12,12 +12,12 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
   const [requiereEnvio, setRequiereEnvio] = useState(true);
   const { speak, transcript, clearTranscript } = useVoiceAssistant();
   
-  // Direcciones de tiendas para recogida
+  // Direcciones de tiendas para recogida en Guayaquil, Ecuador
   const tiendasDisponibles = [
-    'Calle Principal #123, Centro Comercial Plaza Mayor, Bogotá',
-    'Avenida Libertador #456, Local 5, Medellín',
-    'Carrera 7 #890, Centro Empresarial, Cali',
-    'Calle 50 #234, Centro Comercial El Retiro, Barranquilla'
+    'Av. 9 de Octubre 100 y Malecón Simón Bolívar, Local 12, Guayaquil',
+    'Av. Francisco de Orellana, Mall del Sol, Local 203, Guayaquil',
+    'Av. Carlos Julio Arosemena Km 2.5, Riocentro Entre Ríos, Guayaquil',
+    'Av. Benjamín Carrión y Av. Guillermo Pareja, San Marino Shopping, Guayaquil'
   ];
   
   const tiendaSeleccionada = tiendasDisponibles[Math.floor(Math.random() * tiendasDisponibles.length)];
@@ -98,6 +98,46 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
       speak(instrucciones[step]);
     }, 800);
   }, [step, isOpen, total, speak, cartItems, subtotal, iva, formData, requiereEnvio, tiendaSeleccionada]);
+
+  // Función para convertir números en palabras a dígitos
+  const convertirNumerosADigitos = (texto) => {
+    // Diccionario de números en español
+    const numeros = {
+      'cero': '0', 'uno': '1', 'una': '1', 'un': '1',
+      'dos': '2', 'tres': '3', 'cuatro': '4', 'cinco': '5',
+      'seis': '6', 'siete': '7', 'ocho': '8', 'nueve': '9',
+      'diez': '10', 'once': '11', 'doce': '12', 'trece': '13',
+      'catorce': '14', 'quince': '15', 'dieciséis': '16', 'dieciseis': '16',
+      'diecisiete': '17', 'dieciocho': '18', 'diecinueve': '19',
+      'veinte': '20', 'veintiuno': '21', 'veintidós': '22', 'veintidos': '22',
+      'veintitrés': '23', 'veintitres': '23', 'veinticuatro': '24',
+      'veinticinco': '25', 'veintiséis': '26', 'veintiseis': '26',
+      'veintisiete': '27', 'veintiocho': '28', 'veintinueve': '29',
+      'treinta': '30', 'cuarenta': '40', 'cincuenta': '50',
+      'sesenta': '60', 'setenta': '70', 'ochenta': '80', 'noventa': '90'
+    };
+
+    let resultado = texto.toLowerCase();
+    console.log('🔤 Texto original:', resultado);
+
+    // Convertir cada número en palabra a dígito
+    Object.entries(numeros).forEach(([palabra, digito]) => {
+      const regex = new RegExp(`\\b${palabra}\\b`, 'g');
+      resultado = resultado.replace(regex, digito);
+    });
+
+    // Manejar números compuestos como "treinta y cinco" -> "35"
+    resultado = resultado.replace(/(\d+)\s+y\s+(\d+)/g, (match, decena, unidad) => {
+      return String(parseInt(decena) + parseInt(unidad));
+    });
+
+    // Eliminar espacios entre dígitos para formar números completos
+    // Ej: "1 2 3 4" -> "1234"
+    resultado = resultado.replace(/(\d)\s+(\d)/g, '$1$2');
+
+    console.log('🔢 Texto convertido:', resultado);
+    return resultado;
+  };
 
   // Procesar comandos de voz
   useEffect(() => {
@@ -281,10 +321,16 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Documento
       if (cmd.includes('mi documento es') || cmd.includes('mi cédula es') || cmd.includes('documento')) {
-        const documento = cmd.replace(/mi documento es|mi cédula es|mi cedula es|documento|cédula|cedula/g, '').trim().replace(/\s/g, '');
+        let documentoTexto = cmd.replace(/mi documento es|mi cédula es|mi cedula es|documento|cédula|cedula/g, '').trim();
+        // Convertir números en palabras a dígitos
+        documentoTexto = convertirNumerosADigitos(documentoTexto);
+        const documento = documentoTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('📄 Documento procesado:', documento);
+        
         if (documento && documento.length >= 6) {
           setFormData(prev => ({ ...prev, documento_facturacion: documento }));
-          speak(`Documento registrado: ${documento}. Campo completado.`);
+          speak(`Documento registrado: ${documento.split('').join(' ')}. Campo completado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.documento_facturacion;
@@ -299,10 +345,16 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Teléfono
       if (cmd.includes('mi teléfono es') || cmd.includes('mi telefono es') || cmd.includes('teléfono') || cmd.includes('telefono')) {
-        const telefono = cmd.replace(/mi teléfono es|mi telefono es|teléfono|telefono/g, '').trim().replace(/\s/g, '');
+        let telefonoTexto = cmd.replace(/mi teléfono es|mi telefono es|teléfono|telefono/g, '').trim();
+        // Convertir números en palabras a dígitos
+        telefonoTexto = convertirNumerosADigitos(telefonoTexto);
+        const telefono = telefonoTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('📞 Teléfono procesado:', telefono);
+        
         if (telefono && telefono.length >= 7) {
           setFormData(prev => ({ ...prev, telefono_facturacion: telefono }));
-          speak(`Teléfono registrado: ${telefono}. Campo completado.`);
+          speak(`Teléfono registrado: ${telefono.split('').join(' ')}. Campo completado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.telefono_facturacion;
@@ -338,11 +390,24 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Tarjeta
       if (cmd.includes('mi tarjeta es') || cmd.includes('tarjeta')) {
-        const tarjeta = cmd.replace(/mi tarjeta es|tarjeta/g, '').trim().replace(/\s/g, '');
+        let tarjetaTexto = cmd.replace(/mi tarjeta es|tarjeta/g, '').trim();
+        // Convertir números en palabras a dígitos
+        tarjetaTexto = convertirNumerosADigitos(tarjetaTexto);
+        const tarjeta = tarjetaTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('💳 Tarjeta procesada:', tarjeta);
+        
         if (tarjeta && tarjeta.length >= 15) {
           const formateada = tarjeta.replace(/(\d{4})/g, '$1 ').trim();
           setFormData(prev => ({ ...prev, numero_tarjeta: formateada }));
-          speak(`Tarjeta registrada terminada en ${tarjeta.slice(-4)}`);
+          speak(`Tarjeta registrada terminada en ${tarjeta.slice(-4).split('').join(' ')}`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.numero_tarjeta;
+            return newErrors;
+          });
+        } else {
+          speak('La tarjeta debe tener al menos 15 dígitos. Por favor, repítela.');
         }
         clearTranscript();
         return;
@@ -350,10 +415,23 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // CVV
       if (cmd.includes('cvv') || cmd.includes('código de seguridad')) {
-        const cvv = cmd.replace(/cvv|código de seguridad/g, '').trim().replace(/\s/g, '');
-        if (cvv && cvv.length >= 3) {
+        let cvvTexto = cmd.replace(/cvv|código de seguridad|codigo de seguridad/g, '').trim();
+        // Convertir números en palabras a dígitos
+        cvvTexto = convertirNumerosADigitos(cvvTexto);
+        const cvv = cvvTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('🔐 CVV procesado:', cvv);
+        
+        if (cvv && cvv.length >= 3 && cvv.length <= 4) {
           setFormData(prev => ({ ...prev, cvv: cvv }));
-          speak(`Código de seguridad registrado`);
+          speak(`Código de seguridad de ${cvv.length} dígitos registrado correctamente`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.cvv;
+            return newErrors;
+          });
+        } else {
+          speak('El CVV debe tener 3 o 4 dígitos. Por favor, repítelo.');
         }
         clearTranscript();
         return;
@@ -361,12 +439,25 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Vencimiento
       if (cmd.includes('vencimiento') || cmd.includes('expiración') || cmd.includes('expira')) {
-        let fecha = cmd.replace(/vencimiento|expiración|expira/g, '').trim().replace(/\s/g, '');
+        let fechaTexto = cmd.replace(/vencimiento|expiración|expira|fecha de vencimiento|fecha de expiración/g, '').trim();
+        // Convertir números en palabras a dígitos
+        fechaTexto = convertirNumerosADigitos(fechaTexto);
+        let fecha = fechaTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('📅 Fecha de vencimiento procesada:', fecha);
+        
         // Formatear MM/AA
         if (fecha.length >= 4) {
           fecha = fecha.substring(0, 2) + '/' + fecha.substring(2, 4);
           setFormData(prev => ({ ...prev, fecha_expiracion: fecha }));
-          speak(`Fecha de vencimiento registrada`);
+          speak(`Fecha de vencimiento registrada: mes ${fecha.substring(0, 2)}, año ${fecha.substring(3, 5)}`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.fecha_expiracion;
+            return newErrors;
+          });
+        } else {
+          speak('La fecha debe tener mes y año. Por ejemplo: 12 25. Por favor, repítela.');
         }
         clearTranscript();
         return;
@@ -415,10 +506,23 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Código postal
       if (cmd.includes('código postal') || cmd.includes('codigo postal') || cmd.includes('postal')) {
-        const codigo = cmd.replace(/código postal|codigo postal|postal/g, '').trim().replace(/\s/g, '');
+        let codigoTexto = cmd.replace(/código postal|codigo postal|postal/g, '').trim();
+        // Convertir números en palabras a dígitos
+        codigoTexto = convertirNumerosADigitos(codigoTexto);
+        const codigo = codigoTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        
+        console.log('📮 Código postal procesado:', codigo);
+        
         if (codigo) {
           setFormData(prev => ({ ...prev, codigo_postal: codigo }));
-          speak(`Código postal registrado`);
+          speak(`Código postal registrado: ${codigo.split('').join(' ')}`);
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.codigo_postal;
+            return newErrors;
+          });
+        } else {
+          speak('No se detectó un código postal válido. Por favor, repítelo.');
         }
         clearTranscript();
         return;

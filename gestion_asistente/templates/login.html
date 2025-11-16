@@ -432,6 +432,8 @@ let audioContext = null;
 let mediaStream = null;
 let audioProcessor = null;
 let isPushToTalkActive = false;
+let ultimoComandoProcesado = '';  // NUEVO: Para evitar duplicados
+let tiempoUltimoComando = 0;      // NUEVO: Timestamp del último comando
 
 // Variables para el flujo de inicio de sesión por voz
 let modoLoginPorVoz = false;
@@ -543,6 +545,15 @@ function conectarVoskWebSocket() {
                         transcriptElement.style.fontWeight = 'normal';
                         transcriptElement.style.color = '#0dcaf0';
                     }
+                    
+                    // NUEVO: Procesar comandos en tiempo real desde partial
+                    const comandoParcial = data.transcript.toLowerCase().trim();
+                    if (comandoParcial.includes('mi usuario es') || 
+                        comandoParcial.includes('mi contraseña es') ||
+                        comandoParcial.includes('mi clave es')) {
+                        // Si detectamos un comando completo en partial, procesarlo inmediatamente
+                        procesarComandoVozLogin(comandoParcial);
+                    }
                     break;
                 
                 case 'result':
@@ -554,16 +565,16 @@ function conectarVoskWebSocket() {
                         transcriptElement.style.color = '#10b981';
                     }
                     
-                    // Procesar el comando
+                    // Procesar el comando final (por si no se procesó en partial)
                     procesarComandoVozLogin(data.transcript.toLowerCase().trim());
                     
-                    // Limpiar transcript después de 3 segundos
+                    // Limpiar transcript después de 2 segundos (reducido de 3)
                     setTimeout(() => {
                         if (transcriptElement) {
                             transcriptElement.textContent = 'Presiona ESPACIO para hablar...';
                             transcriptElement.style.color = '#6c757d';
                         }
-                    }, 3000);
+                    }, 2000);
                     break;
                 
                 case 'error':
@@ -707,6 +718,12 @@ function configurarAtajosTeclado() {
                     transcriptElement.textContent = '🎙️ Escuchando...';
                     transcriptElement.style.color = '#0dcaf0';
                 }
+                
+                // Enviar señal de inicio al reconocedor para reiniciarlo
+                if (voskWebSocket && voskWebSocket.readyState === WebSocket.OPEN) {
+                    console.log('🚀 Enviando señal de inicio a Vosk');
+                    voskWebSocket.send(JSON.stringify({ type: 'start' }));
+                }
             }
         }
         
@@ -746,7 +763,8 @@ function configurarAtajosTeclado() {
                 
                 // Enviar comando final para procesar
                 if (voskWebSocket && voskWebSocket.readyState === WebSocket.OPEN) {
-                    voskWebSocket.send(JSON.stringify({ action: 'finish' }));
+                    console.log('📤 Enviando señal de finalización a Vosk');
+                    voskWebSocket.send(JSON.stringify({ type: 'stop' }));
                 }
             }
         }
@@ -824,6 +842,17 @@ function configurarCamposConVoz() {
 function procesarComandoVozLogin(comando) {
     console.log('🎤 Comando recibido:', comando);
     
+    // NUEVO: Evitar procesar el mismo comando múltiples veces
+    const ahora = Date.now();
+    if (comando === ultimoComandoProcesado && (ahora - tiempoUltimoComando) < 1000) {
+        console.log('⏭️ Comando duplicado, ignorando...');
+        return;
+    }
+    
+    // Actualizar control de duplicados
+    ultimoComandoProcesado = comando;
+    tiempoUltimoComando = ahora;
+    
     // Si estamos en modo login por voz, procesar el flujo
     if (modoLoginPorVoz) {
         procesarFlujoLoginPorVoz(comando);
@@ -839,12 +868,23 @@ function procesarComandoVozLogin(comando) {
         comando.includes('mi usuario') ||
         comando.includes('el usuario es')) {
         
-        const patrones = ['mi usuario es', 'mi nombre de usuario es', 'usuario es', 'mi usuario', 'el usuario es', 'usuario'];
+        console.log('🎯 Detectado comando de USUARIO');
+        
+        // Patrones ordenados de MÁS ESPECÍFICO a MENOS ESPECÍFICO
+        const patrones = [
+            'mi nombre de usuario es',
+            'el usuario es',
+            'mi usuario es',
+            'usuario es',
+            'mi usuario'
+        ];
         const valorExtraido = extraerValorComando(comando, patrones);
+        
+        console.log('📝 Valor extraído para usuario:', valorExtraido);
         
         if (valorExtraido) {
             document.getElementById('username').value = valorExtraido;
-            console.log('✅ Usuario establecido:', valorExtraido);
+            console.log('✅ Usuario establecido en el campo:', valorExtraido);
             
             // Feedback inmediato
             hablarTexto(`Usuario ${valorExtraido}`);
@@ -860,6 +900,8 @@ function procesarComandoVozLogin(comando) {
             
             agregarMensajeChat('Usuario', comando);
             agregarMensajeChat('Asistente', `✅ Usuario: "${valorExtraido}"`);
+        } else {
+            console.log('⚠️ No se pudo extraer el valor del usuario');
         }
         return;
     }
@@ -872,12 +914,25 @@ function procesarComandoVozLogin(comando) {
         comando.includes('la contraseña es') ||
         comando.includes('password es')) {
         
-        const patrones = ['mi contraseña es', 'mi clave es', 'contraseña es', 'mi contraseña', 'la contraseña es', 'password es', 'contraseña', 'clave'];
+        console.log('🎯 Detectado comando de CONTRASEÑA');
+        
+        // Patrones ordenados de MÁS ESPECÍFICO a MENOS ESPECÍFICO
+        const patrones = [
+            'la contraseña es',
+            'mi contraseña es',
+            'mi clave es',
+            'contraseña es',
+            'password es',
+            'mi contraseña',
+            'mi clave'
+        ];
         const valorExtraido = extraerValorComando(comando, patrones);
+        
+        console.log('📝 Valor extraído para contraseña:', valorExtraido ? '****' : 'null');
         
         if (valorExtraido) {
             document.getElementById('password').value = valorExtraido;
-            console.log('✅ Contraseña establecida');
+            console.log('✅ Contraseña establecida en el campo');
             
             // Feedback inmediato (sin revelar la contraseña)
             hablarTexto('Contraseña ingresada');
@@ -893,6 +948,22 @@ function procesarComandoVozLogin(comando) {
             
             agregarMensajeChat('Usuario', 'mi contraseña es ****');
             agregarMensajeChat('Asistente', '✅ Contraseña establecida');
+            
+            // NUEVO: Auto-submit si ambos campos están llenos
+            setTimeout(() => {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (username && password) {
+                    console.log('🚀 Ambos campos completos - Iniciando sesión automáticamente...');
+                    hablarTexto('Iniciando sesión');
+                    setTimeout(() => {
+                        document.getElementById('loginForm').submit();
+                    }, 800);
+                }
+            }, 500);
+        } else {
+            console.log('⚠️ No se pudo extraer el valor de la contraseña');
         }
         return;
     }
@@ -904,18 +975,22 @@ function procesarComandoVozLogin(comando) {
         comando.includes('ingresar') ||
         comando.includes('iniciar')) {
         
+        console.log('🎯 Detectado comando INICIAR SESIÓN');
+        
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         
         if (!username || !password) {
+            console.log('⚠️ Faltan datos - Usuario:', username ? 'OK' : 'VACÍO', 'Password:', password ? 'OK' : 'VACÍO');
             hablarTexto('Falta información. Necesito usuario y contraseña.');
             return;
         }
         
+        console.log('🚀 Enviando formulario de login...');
         hablarTexto('Iniciando sesión');
         setTimeout(() => {
             document.getElementById('loginForm').submit();
-        }, 500);
+        }, 800);
         return;
     }
     
@@ -1064,13 +1139,33 @@ function procesarFlujoLoginPorVoz(comando) {
 
 // Extraer valor de un comando de voz
 function extraerValorComando(comando, palabrasClave) {
-    for (const palabra of palabrasClave) {
-        const indice = comando.indexOf(palabra);
-        if (indice !== -1) {
-            const valor = comando.substring(indice + palabra.length).trim();
-            return valor;
+    console.log('🔍 Extrayendo valor de comando:', comando);
+    console.log('🔑 Palabras clave a buscar:', palabrasClave);
+    
+    // Intentar con cada palabra clave en orden de prioridad
+    for (const palabraClave of palabrasClave) {
+        const regex = new RegExp(palabraClave + '\\s+(.+)', 'i');
+        const match = comando.match(regex);
+        if (match && match[1]) {
+            const valorExtraido = match[1].trim();
+            console.log(`✅ Coincidencia encontrada con "${palabraClave}": "${valorExtraido}"`);
+            return valorExtraido;
         }
     }
+    
+    // Si no se encuentra con regex, intentar de forma más flexible
+    for (const palabraClave of palabrasClave) {
+        if (comando.includes(palabraClave)) {
+            const indice = comando.indexOf(palabraClave);
+            const valor = comando.substring(indice + palabraClave.length).trim();
+            if (valor) {
+                console.log(`✅ Coincidencia flexible con "${palabraClave}": "${valor}"`);
+                return valor;
+            }
+        }
+    }
+    
+    console.log('❌ No se encontró ninguna coincidencia');
     return null;
 }
 

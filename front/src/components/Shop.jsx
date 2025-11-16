@@ -118,31 +118,78 @@ export const Shop = () => {
 
     // ===== COMANDO: AGREGAR PRODUCTO CON CANTIDAD =====
     if (cmd.includes('agregar') || cmd.includes('añadir') || cmd.includes('agrega')) {
-      // Diccionario de números en palabras
+      console.log('🛒 Procesando comando de agregar:', cmd);
+      
+      // Diccionario completo de números en español
       const numberWords = {
-        'un': 1, 'una': 1, 'uno': 1,
+        'cero': 0,
+        'uno': 1, 'una': 1, 'un': 1,
         'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
-        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10,
-        'once': 11, 'doce': 12, 'trece': 13, 'catorce': 14, 'quince': 15,
-        'dieciséis': 16, 'dieciseis': 16, 'diecisiete': 17, 'dieciocho': 18,
-        'diecinueve': 19, 'veinte': 20
+        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9,
+        'diez': 10, 'once': 11, 'doce': 12, 'trece': 13,
+        'catorce': 14, 'quince': 15,
+        'dieciséis': 16, 'dieciseis': 16,
+        'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
+        'veinte': 20, 'veintiuno': 21, 'veintiuna': 21,
+        'veintidós': 22, 'veintidos': 22,
+        'veintitrés': 23, 'veintitres': 23,
+        'veinticuatro': 24, 'veinticinco': 25,
+        'veintiséis': 26, 'veintiseis': 26,
+        'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29,
+        'treinta': 30, 'cuarenta': 40, 'cincuenta': 50,
+        'sesenta': 60, 'setenta': 70, 'ochenta': 80, 'noventa': 90
       };
       
       let cantidad = 1;
+      let cantidadDetectada = false;
       
-      // Buscar número en palabras
-      for (const [word, num] of Object.entries(numberWords)) {
-        if (cmd.includes(word)) {
-          cantidad = num;
-          break;
+      // Extraer la parte después de "agregar/añadir"
+      const comandoPartes = cmd.split(/agregar|añadir|agrega/i);
+      const parteRelevante = comandoPartes[1] ? comandoPartes[1].trim() : '';
+      
+      console.log('📝 Parte relevante del comando:', parteRelevante);
+      
+      // Primero buscar número en dígitos (más confiable)
+      const digitMatch = parteRelevante.match(/\b(\d+)\b/);
+      if (digitMatch) {
+        cantidad = parseInt(digitMatch[1]);
+        cantidadDetectada = true;
+        console.log('✅ Cantidad detectada (dígito):', cantidad);
+      }
+      
+      // Si no hay dígito, buscar números en palabras
+      if (!cantidadDetectada) {
+        // Primero buscar números compuestos (más específicos)
+        const numerosOrdenados = Object.entries(numberWords).sort((a, b) => b[0].length - a[0].length);
+        
+        for (const [palabra, numero] of numerosOrdenados) {
+          const regex = new RegExp(`\\b${palabra}\\b`, 'i');
+          if (regex.test(parteRelevante)) {
+            cantidad = numero;
+            cantidadDetectada = true;
+            console.log('✅ Cantidad detectada (palabra):', cantidad, `(${palabra})`);
+            break;
+          }
         }
       }
       
-      // Buscar número en dígitos
-      const digitMatch = cmd.match(/\d+/);
-      if (digitMatch) {
-        cantidad = parseInt(digitMatch[0]);
+      // Manejar números compuestos como "treinta y cinco"
+      if (!cantidadDetectada) {
+        const compuestoMatch = parteRelevante.match(/\b(treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa)\s+y\s+(uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\b/i);
+        if (compuestoMatch) {
+          const decena = numberWords[compuestoMatch[1].toLowerCase()] || 0;
+          const unidad = numberWords[compuestoMatch[2].toLowerCase()] || 0;
+          cantidad = decena + unidad;
+          cantidadDetectada = true;
+          console.log('✅ Cantidad detectada (compuesto):', cantidad, `(${compuestoMatch[0]})`);
+        }
       }
+      
+      if (!cantidadDetectada) {
+        console.log('ℹ️ No se detectó cantidad específica, usando default: 1');
+      }
+      
+      console.log('🔢 Cantidad final a agregar:', cantidad);
 
       // Buscar producto por nombre o categoría
       const productMatches = products.filter(p => 
@@ -152,16 +199,21 @@ export const Shop = () => {
 
       if (productMatches.length > 0) {
         const product = productMatches[0];
+        console.log('🎯 Producto encontrado:', product.name);
         
         // Verificar stock disponible
         const currentInCart = cartItems.find(item => item.id === product.id)?.quantity || 0;
         const availableStock = product.stock - currentInCart;
+        
+        console.log(`📊 Stock: total=${product.stock}, en carrito=${currentInCart}, disponible=${availableStock}, solicitado=${cantidad}`);
         
         if (availableStock < cantidad) {
           speak(`Lo siento, solo hay ${availableStock} unidades disponibles de ${product.name}. ${currentInCart > 0 ? `Ya tienes ${currentInCart} en el carrito.` : ''}`);
           clearTranscript();
           return;
         }
+        
+        console.log(`📦 Agregando ${cantidad} unidades de ${product.name} al carrito...`);
         
         // Agregar la cantidad especificada
         for (let i = 0; i < cantidad; i++) {
@@ -171,10 +223,41 @@ export const Shop = () => {
         const totalInCart = currentInCart + cantidad;
         const precioTotal = product.price * cantidad;
         
-        speak(`Perfecto. He agregado ${cantidad} ${cantidad === 1 ? product.name : product.name} al carrito. ` +
-              `Precio unitario: ${product.price} pesos. Total: ${precioTotal.toFixed(2)} pesos. ` +
-              `Ahora tienes ${totalInCart} ${totalInCart === 1 ? 'unidad' : 'unidades'} de este producto.`);
+        // Mensaje de confirmación mejorado y más claro
+        let mensaje = '';
+        
+        // Anunciar cantidad agregada
+        if (cantidad === 1) {
+          mensaje = `Listo. Agregué una unidad de ${product.name} al carrito. `;
+        } else if (cantidad === 2) {
+          mensaje = `Listo. Agregué dos unidades de ${product.name} al carrito. `;
+        } else if (cantidad === 3) {
+          mensaje = `Listo. Agregué tres unidades de ${product.name} al carrito. `;
+        } else if (cantidad === 4) {
+          mensaje = `Listo. Agregué cuatro unidades de ${product.name} al carrito. `;
+        } else if (cantidad === 5) {
+          mensaje = `Listo. Agregué cinco unidades de ${product.name} al carrito. `;
+        } else {
+          mensaje = `Listo. Agregué ${cantidad} unidades de ${product.name} al carrito. `;
+        }
+        
+        // Información de precio
+        if (cantidad > 1) {
+          mensaje += `Precio unitario: ${product.price} pesos. Total: ${precioTotal.toFixed(2)} pesos. `;
+        } else {
+          mensaje += `Precio: ${product.price} pesos. `;
+        }
+        
+        // Total en el carrito
+        mensaje += `Ahora tienes ${totalInCart} ${totalInCart === 1 ? 'unidad' : 'unidades'} de este producto.`;
+        
+        console.log(`✅ Agregado exitosamente: ${cantidad} x ${product.name}`);
+        console.log(`💰 Precio total: ${precioTotal.toFixed(2)} pesos`);
+        console.log(`🛒 Total en carrito de este producto: ${totalInCart} unidades`);
+        
+        speak(mensaje);
       } else {
+        console.log('❌ Producto no encontrado en el comando:', cmd);
         speak('No encontré ese producto. Por favor, di leer productos para escuchar los productos disponibles.');
       }
       clearTranscript();

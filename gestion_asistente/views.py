@@ -47,7 +47,7 @@ def home(request):
                     return redirect('http://localhost:5173/')
                 else:
                     messages.success(request, f'¡Bienvenido {user.username}! Has iniciado sesión exitosamente.')
-                    return redirect('/productos/')
+                    return redirect('http://localhost:5173/')
             else:
                 messages.error(request, 'Credenciales incorrectas. Por favor verifica tu usuario y contraseña.')
                 return render(request, 'login.html', {'form': form})    
