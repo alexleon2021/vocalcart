@@ -1,0 +1,259 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     ✅ SISTEMA DE VOZ MEJORADO PARA ACCESIBILIDAD             ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎉 CAMBIOS IMPLEMENTADOS:
+
+✅ Reconocimiento de voz mejorado
+✅ Retroalimentación completa y descriptiva
+✅ Soporte para usuarios con discapacidad visual
+✅ Comandos más intuitivos y variados
+✅ Información detallada de productos y precios
+✅ Confirmaciones claras en cada acción
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CÓMO PROBAR EL SISTEMA:
+
+1. ASEGÚRATE QUE LOS SERVIDORES ESTÉN CORRIENDO:
+
+   Terminal 1 - Backend Django:
+   $ cd /home/d4n7dev/Escritorio/DEV/vocalcart/vocalcart
+   $ source ../envvocalcart/bin/activate
+   $ daphne -b 127.0.0.1 -p 8000 vocalcart.asgi:application
+
+   Terminal 2 - Frontend React:
+   $ cd /home/d4n7dev/Escritorio/DEV/vocalcart/vocalcart/front
+   $ npm run dev
+
+2. ABRE EL NAVEGADOR:
+   
+   http://localhost:5173
+
+   (Recomendado: Edge o Chromium con espeak-ng instalado)
+
+3. ESCUCHA EL MENSAJE DE BIENVENIDA:
+   
+   > "Bienvenido a Vocal Cart. Mantén presionada la barra 
+   >  espaciadora para hablar."
+
+4. PRESIONA Y MANTÉN LA BARRA ESPACIADORA
+
+5. DI UN COMANDO, POR EJEMPLO:
+
+   "Leer productos"
+
+6. SUELTA LA BARRA ESPACIADORA
+
+7. ESCUCHA LA RESPUESTA DEL SISTEMA
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 EJEMPLOS DE COMANDOS PARA PROBAR:
+
+┌─────────────────────────────────────────────────────────────┐
+│ EXPLORAR PRODUCTOS                                          │
+├─────────────────────────────────────────────────────────────┤
+│ 1. "Ayuda"                                                  │
+│    → Escucha todos los comandos disponibles                │
+│                                                             │
+│ 2. "Leer productos"                                         │
+│    → Escucha lista de productos con precios                │
+│                                                             │
+│ 3. "Qué categorías hay"                                     │
+│    → Escucha las categorías disponibles                    │
+│                                                             │
+│ 4. "Información de manzanas"                                │
+│    → Escucha detalles del producto                         │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ AGREGAR AL CARRITO                                          │
+├─────────────────────────────────────────────────────────────┤
+│ 5. "Agregar cinco manzanas"                                 │
+│    → Agrega 5 manzanas                                      │
+│    → Escucha confirmación con precio total                 │
+│                                                             │
+│ 6. "Agregar dos leches"                                     │
+│    → Agrega 2 leches                                        │
+│                                                             │
+│ 7. "Agregar una naranja"                                    │
+│    → Agrega 1 naranja                                       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ REVISAR CARRITO                                             │
+├─────────────────────────────────────────────────────────────┤
+│ 8. "Leer carrito"                                           │
+│    → Escucha TODOS los productos con cantidades y precios  │
+│                                                             │
+│ 9. "Total"                                                  │
+│    → Escucha solo el total a pagar                         │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ MODIFICAR CARRITO                                           │
+├─────────────────────────────────────────────────────────────┤
+│ 10. "Quitar manzanas"                                       │
+│     → Elimina las manzanas del carrito                     │
+│                                                             │
+│ 11. "Vaciar carrito"                                        │
+│     → Elimina TODO del carrito                             │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ BUSCAR Y FILTRAR                                            │
+├─────────────────────────────────────────────────────────────┤
+│ 12. "Buscar pan"                                            │
+│     → Busca productos que contengan "pan"                  │
+│                                                             │
+│ 13. "Filtrar por frutas"                                    │
+│     → Muestra solo productos de frutas                     │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ FINALIZAR COMPRA                                            │
+├─────────────────────────────────────────────────────────────┤
+│ 14. "Finalizar compra"                                      │
+│     → Procede al checkout                                  │
+│     → Escucha resumen de compra                            │
+└─────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 FLUJO COMPLETO DE PRUEBA:
+
+1. Di: "Leer productos"
+   → Escucharás la lista completa
+
+2. Di: "Agregar cinco manzanas"
+   → Escucharás: "Perfecto. He agregado 5 manzanas al carrito.
+                  Precio unitario: 50 pesos. Total: 250 pesos.
+                  Ahora tienes 5 unidades de este producto."
+
+3. Di: "Agregar dos leches"
+   → Escucharás confirmación con precio
+
+4. Di: "Leer carrito"
+   → Escucharás: "Tienes 2 productos en el carrito.
+                  1. Manzanas, cantidad: 5, precio unitario: 50 pesos,
+                  subtotal: 250 pesos.
+                  2. Leche, cantidad: 2, precio unitario: 80 pesos,
+                  subtotal: 160 pesos.
+                  Total de artículos: 7. Total a pagar: 410 pesos."
+
+5. Di: "Total"
+   → Escucharás: "El total de tu carrito es 410 pesos por 7 artículos."
+
+6. Di: "Finalizar compra"
+   → Escucharás: "Procediendo a finalizar la compra.
+                  Tienes 7 artículos. Total a pagar: 410 pesos."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 INDICADORES VISUALES:
+
+Durante el uso verás:
+
+📢 BANNER AMARILLO PULSANTE:
+   → Aparece cuando presionas BARRA ESPACIADORA
+   → Muestra: "🎤 Escuchando..."
+   → Muestra el texto que vas diciendo en TIEMPO REAL
+
+✅ BANNER VERDE:
+   → Aparece después de soltar la barra espaciadora
+   → Muestra el comando que procesó el sistema
+   → Ejemplo: "✓ Comando: agregar cinco manzanas"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔊 RETROALIMENTACIÓN DE VOZ:
+
+TODAS las acciones son confirmadas por voz:
+
+✅ Al agregar productos:
+   "Perfecto. He agregado [cantidad] [producto] al carrito.
+    Precio unitario: [precio] pesos. Total: [subtotal] pesos.
+    Ahora tienes [total] unidades de este producto."
+
+✅ Al leer el carrito:
+   "Tienes [n] productos en el carrito.
+    1. [nombre], cantidad: [n], precio: [p], subtotal: [s].
+    2. [nombre], cantidad: [n], precio: [p], subtotal: [s].
+    Total de artículos: [n]. Total a pagar: [total] pesos."
+
+✅ Al buscar productos:
+   "Encontré [n] productos con [término].
+    1. [nombre], [precio] pesos.
+    2. [nombre], [precio] pesos."
+
+✅ Si algo sale mal:
+   "No encontré ese producto. Por favor, di leer productos
+    para escuchar los productos disponibles."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTACIÓN COMPLETA:
+
+He creado dos documentos de referencia:
+
+1. SISTEMA_HIBRIDO.md
+   → Documentación técnica del sistema
+   → Arquitectura y funcionamiento
+   → Solución de problemas
+
+2. COMANDOS_VOZ_ACCESIBILIDAD.md
+   → Guía completa de comandos de voz
+   → Ejemplos de uso
+   → Flujos completos
+   → Consejos y mejores prácticas
+   → ⭐ PERFECTO PARA USUARIOS CON DISCAPACIDAD VISUAL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ CARACTERÍSTICAS DE ACCESIBILIDAD:
+
+✅ 100% funcional con voz (sin necesidad de mouse)
+✅ Retroalimentación completa en cada paso
+✅ Precios siempre mencionados
+✅ Cantidades siempre especificadas
+✅ Confirmaciones claras
+✅ Sugerencias de próximos pasos
+✅ Comandos intuitivos en lenguaje natural
+✅ Errores explicados de forma comprensible
+✅ Información detallada de productos
+✅ Resumen completo del carrito
+✅ Totales calculados automáticamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🐛 SOLUCIÓN DE PROBLEMAS:
+
+Si la síntesis de voz no funciona:
+→ Verifica que espeak-ng esté instalado:
+  $ espeak-ng --version
+
+→ Reinicia speech-dispatcher:
+  $ systemctl --user restart speech-dispatcher
+
+→ Prueba en Chromium:
+  $ chromium http://localhost:5173
+
+Si el reconocimiento no funciona:
+→ Verifica que Django esté corriendo con Daphne (no runserver)
+→ Verifica permisos del micrófono en el navegador
+→ Revisa la consola del navegador (F12)
+→ Verifica WebSocket en: ws://localhost:8000/ws/voice/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 ¡LISTO PARA PROBAR!
+
+Recarga el navegador en http://localhost:5173 y prueba los comandos.
+
+El sistema ahora es MUCHO más descriptivo y accesible para usuarios
+con discapacidad visual.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Lee COMANDOS_VOZ_ACCESIBILIDAD.md para la guía completa.

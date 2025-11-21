@@ -1,0 +1,322 @@
+═══════════════════════════════════════════════════════════════════
+🎯 RESUMEN DE CAMBIOS - PUSH-TO-TALK EN LOGIN ORIGINAL
+═══════════════════════════════════════════════════════════════════
+
+Archivo modificado: login.html
+URL: http://localhost:8000/login/
+
+═══════════════════════════════════════════════════════════════════
+✨ CAMBIOS REALIZADOS
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ EVENTOS DE TECLADO (Push-to-Talk)
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```javascript
+document.addEventListener('keydown', function(e) {
+    // Solo Alt+V, Alt+A, Escape, Enter
+});
+```
+
+DESPUÉS:
+```javascript
+let spacebarPressed = false;
+
+document.addEventListener('keydown', function(e) {
+    // NUEVO: Push-to-Talk con ESPACIO
+    if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        if (!spacebarPressed && vozHabilitada) {
+            spacebarPressed = true;
+            iniciarReconocimientoVoz();
+        }
+    }
+    // ... otros atajos existentes
+});
+
+document.addEventListener('keyup', function(e) {
+    // NUEVO: Detener al soltar ESPACIO
+    if (e.code === 'Space') {
+        spacebarPressed = false;
+        if (reconocimientoVoz) {
+            reconocimientoVoz.stop();
+        }
+    }
+});
+```
+
+═══════════════════════════════════════════════════════════════════
+
+2️⃣ TRANSCRIPT EN TIEMPO REAL
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```javascript
+reconocimientoVoz.onresult = function(event) {
+    const comando = event.results[ultima][0].transcript;
+    if (event.results[ultima].isFinal) {
+        procesarComandoVozLogin(comando);
+    }
+};
+```
+
+DESPUÉS:
+```javascript
+reconocimientoVoz.onresult = function(event) {
+    const comando = event.results[ultima][0].transcript;
+    const isFinal = event.results[ultima].isFinal;
+    
+    // NUEVO: Mostrar transcript en tiempo real
+    const transcriptElement = document.getElementById('transcript-voz');
+    if (transcriptElement) {
+        transcriptElement.textContent = isFinal ? `✓ ${comando}` : comando;
+        transcriptElement.style.fontWeight = isFinal ? 'bold' : 'normal';
+    }
+    
+    if (isFinal) {
+        procesarComandoVozLogin(comando);
+        // Limpiar después de 2 segundos
+        setTimeout(() => {
+            if (transcriptElement) transcriptElement.textContent = '';
+        }, 2000);
+    }
+};
+```
+
+═══════════════════════════════════════════════════════════════════
+
+3️⃣ COMANDOS DE VOZ MEJORADOS
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```javascript
+// Solo comando para usuario
+if (comando.includes('mi usuario es')) {
+    // Llenar username
+    hablarTexto('Usuario establecido... Contraseña debe ser manual');
+}
+```
+
+DESPUÉS:
+```javascript
+// Comando usuario
+if (comando.includes('mi usuario es') || 
+    comando.includes('mi nombre de usuario es') || 
+    comando.includes('usuario')) {
+    const valor = extraerValorComando(comando, [...]);
+    document.getElementById('username').value = valor;
+    hablarTexto(`Usuario establecido como ${valor}.`);
+    return;
+}
+
+// NUEVO: Comando contraseña
+if (comando.includes('mi contraseña es') || 
+    comando.includes('mi clave es')) {
+    const valor = extraerValorComando(comando, [...]);
+    document.getElementById('password').value = valor;
+    hablarTexto('Contraseña ingresada correctamente.');
+    return;
+}
+
+// NUEVO: Comando iniciar sesión
+if (comando.includes('iniciar sesión') || 
+    comando.includes('entrar') || 
+    comando.includes('login')) {
+    hablarTexto('Iniciando sesión...');
+    document.getElementById('login-form').submit();
+    return;
+}
+
+// NUEVO: Comando limpiar
+if (comando.includes('limpiar') || comando.includes('borrar')) {
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    hablarTexto('Campos limpiados.');
+    return;
+}
+```
+
+═══════════════════════════════════════════════════════════════════
+
+4️⃣ UI - PANEL DE VOZ (HTML)
+───────────────────────────────────────────────────────────────────
+
+AGREGADO al panel lateral:
+
+```html
+<!-- Transcript en tiempo real -->
+<div class="transcript-container mt-2 p-2 rounded">
+    <small class="text-white-50">
+        <i class="fas fa-microphone me-1"></i>Transcript:
+    </small>
+    <div id="transcript-voz" class="text-white small mt-1">
+        Presiona ESPACIO para hablar...
+    </div>
+</div>
+
+<!-- Instrucción Push-to-Talk -->
+<div class="mt-2 p-2 rounded text-center">
+    <small class="text-info">
+        <i class="fas fa-keyboard me-1"></i>
+        <strong>Push-to-Talk:</strong> Mantén ESPACIO y habla
+    </small>
+</div>
+```
+
+═══════════════════════════════════════════════════════════════════
+
+5️⃣ UI - MODAL DE COMANDOS
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```html
+<button onclick="leerCamposFormulario()">
+    "Leer campos del formulario"
+</button>
+<button onclick="hablarTexto('...')">
+    "¿Cómo inicio sesión?"
+</button>
+```
+
+DESPUÉS:
+```html
+<!-- NUEVO: Alert destacado -->
+<div class="alert alert-primary mb-3">
+    <strong>Push-to-Talk:</strong>
+    Mantén presionada la tecla <kbd>ESPACIO</kbd> y habla
+</div>
+
+<!-- NUEVOS comandos -->
+<button onclick="hablarTexto('...')">
+    "mi usuario es [nombre]"
+</button>
+<button onclick="hablarTexto('...')">
+    "mi contraseña es [clave]"
+</button>
+<button onclick="hablarTexto('...')">
+    "iniciar sesión"
+</button>
+<button onclick="hablarTexto('...')">
+    "limpiar"
+</button>
+<button onclick="leerCamposFormulario()">
+    "leer campos"
+</button>
+<button onclick="hablarTexto('...')">
+    "ayuda"
+</button>
+```
+
+═══════════════════════════════════════════════════════════════════
+
+6️⃣ UI - INSTRUCCIONES DE ACCESIBILIDAD
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```html
+<div class="alert alert-info">
+    🔊 Accesibilidad: Tab para navegar, Alt+V para voz, Alt+A para asistente
+</div>
+```
+
+DESPUÉS:
+```html
+<div class="alert alert-info">
+    🔊 <strong>Accesibilidad:</strong> 
+    <kbd>ESPACIO</kbd> para hablar | 
+    <kbd>Tab</kbd> navegar | 
+    <kbd>Alt+V</kbd> voz | 
+    <kbd>Alt+A</kbd> asistente
+</div>
+```
+
+═══════════════════════════════════════════════════════════════════
+
+7️⃣ UI - CAMPO CONTRASEÑA
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+```html
+<div class="form-text text-warning">
+    🔒 <strong>Por seguridad:</strong> 
+    Este campo NO usa asistente de voz. 
+    Debes ingresar tu contraseña manualmente.
+</div>
+```
+
+DESPUÉS:
+```html
+<div class="form-text">
+    🎤 Di "mi contraseña es..." para llenar con voz
+</div>
+```
+
+═══════════════════════════════════════════════════════════════════
+📊 COMPARACIÓN VISUAL
+═══════════════════════════════════════════════════════════════════
+
+ANTES                          │  DESPUÉS
+───────────────────────────────┼──────────────────────────────────
+❌ Sin Push-to-Talk            │  ✅ Push-to-Talk con ESPACIO
+❌ Sin transcript visible      │  ✅ Transcript en tiempo real
+⚠️  Solo comando de usuario    │  ✅ Comandos completos
+❌ Contraseña solo manual      │  ✅ Contraseña por voz opcional
+⚠️  Click en botón para hablar │  ✅ Presiona ESPACIO
+───────────────────────────────┴──────────────────────────────────
+
+═══════════════════════════════════════════════════════════════════
+🎯 EXPERIENCIA DE USUARIO
+═══════════════════════════════════════════════════════════════════
+
+FLUJO COMPLETO CON PUSH-TO-TALK:
+
+1. Usuario abre http://localhost:8000/login/
+
+2. Usuario ve en panel lateral:
+   ┌────────────────────────────┐
+   │ Transcript:                │
+   │ Presiona ESPACIO...        │
+   │                            │
+   │ Push-to-Talk:              │
+   │ Mantén ESPACIO y habla     │
+   └────────────────────────────┘
+
+3. Usuario mantiene ESPACIO y dice:
+   "mi usuario es danny"
+
+4. Transcript muestra en tiempo real:
+   "mi usuario es danny"
+
+5. Al soltar ESPACIO, transcript muestra:
+   "✓ mi usuario es danny"
+
+6. Campo username se llena con "danny"
+
+7. Audio confirma: "Usuario establecido como danny"
+
+8. Usuario repite para contraseña:
+   Mantiene ESPACIO → dice "mi contraseña es clave123"
+   
+9. Usuario mantiene ESPACIO y dice:
+   "iniciar sesión"
+
+10. Sistema envía formulario automáticamente
+
+═══════════════════════════════════════════════════════════════════
+✅ RESULTADO FINAL
+═══════════════════════════════════════════════════════════════════
+
+El login original ahora tiene EXACTAMENTE la misma experiencia que React:
+
+REACT Shop.jsx:              │  DJANGO login.html:
+────────────────────────────┼────────────────────────────────
+Presiona ESPACIO            │  Presiona ESPACIO
+Di "agregar 5 manzanas"     │  Di "mi usuario es danny"
+Suelta ESPACIO              │  Suelta ESPACIO
+Transcript visible          │  Transcript visible
+Acción ejecutada            │  Campo llenado
+Audio confirma              │  Audio confirma
+────────────────────────────┴────────────────────────────────
+
+¡MISMA EXPERIENCIA DE USUARIO! ✅

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Síntesis de Voz - Chrome/Chromium</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .error-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+        .log-info { border-left-color: #17a2b8; }
+        .log-success { border-left-color: #28a745; }
+        .log-warning { border-left-color: #ffc107; }
+        .log-error { border-left-color: #dc3545; }
+        #voicesList {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .voice-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .test-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Test de Síntesis de Voz</h1>
+        <p class="subtitle">Diagnóstico para Chrome/Chromium en Linux</p>
+
+        <!-- Información del navegador -->
+        <div class="info-box">
+            <h3>📋 Información del Sistema</h3>
+            <p id="browserInfo">Cargando...</p>
+        </div>
+
+        <!-- Test 1: Verificar soporte -->
+        <div class="test-section">
+            <h3>Test 1: Verificar Soporte de Web Speech API</h3>
+            <button onclick="checkSupport()">Verificar Soporte</button>
+            <div id="supportResult"></div>
+        </div>
+
+        <!-- Test 2: Cargar voces -->
+        <div class="test-section">
+            <h3>Test 2: Cargar Voces Disponibles</h3>
+            <button onclick="loadVoices()">Cargar Voces</button>
+            <div id="voicesResult"></div>
+            <div id="voicesList"></div>
+        </div>
+
+        <!-- Test 3: Prueba simple -->
+        <div class="test-section">
+            <h3>Test 3: Síntesis Simple (sin voz específica)</h3>
+            <button onclick="testSimpleSynthesis()">Probar "Hola Mundo"</button>
+        </div>
+
+        <!-- Test 4: Prueba con voz española -->
+        <div class="test-section">
+            <h3>Test 4: Síntesis con Voz en Español</h3>
+            <button onclick="testSpanishSynthesis()">Probar en Español</button>
+        </div>
+
+        <!-- Test 5: Prueba con espeak-ng -->
+        <div class="test-section">
+            <h3>Test 5: Síntesis con Primera Voz Disponible</h3>
+            <button onclick="testFirstVoice()">Probar Primera Voz</button>
+        </div>
+
+        <!-- Log de eventos -->
+        <h3 style="margin-top: 30px;">📝 Log de Eventos</h3>
+        <div class="log" id="log"></div>
+
+        <div class="warning-box" style="margin-top: 20px;">
+            <strong>⚠️ Nota:</strong> En Linux, necesitas tener instalado <code>espeak-ng</code> o <code>festival</code> 
+            para que el navegador pueda sintetizar voz. Chromium se reinició después de instalar espeak-ng.
+        </div>
+    </div>
+
+    <script>
+        // Mostrar info del navegador
+        document.getElementById('browserInfo').innerHTML = `
+            <strong>Navegador:</strong> ${navigator.userAgent}<br>
+            <strong>Plataforma:</strong> ${navigator.platform}<br>
+            <strong>Idioma:</strong> ${navigator.language}
+        `;
+
+        let voices = [];
+        const synth = window.speechSynthesis;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function checkSupport() {
+            log('Verificando soporte de Web Speech API...', 'info');
+            
+            const resultDiv = document.getElementById('supportResult');
+            
+            if (!('speechSynthesis' in window)) {
+                resultDiv.innerHTML = '<div class="error-box">❌ speechSynthesis NO está disponible</div>';
+                log('speechSynthesis NO soportado', 'error');
+                return;
+            }
+
+            if (!('SpeechSynthesisUtterance' in window)) {
+                resultDiv.innerHTML = '<div class="error-box">❌ SpeechSynthesisUtterance NO está disponible</div>';
+                log('SpeechSynthesisUtterance NO soportado', 'error');
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="success-box">✅ Web Speech API totalmente soportada</div>';
+            log('Web Speech API está disponible', 'success');
+            log('speechSynthesis: ' + (typeof speechSynthesis), 'info');
+            log('SpeechSynthesisUtterance: ' + (typeof SpeechSynthesisUtterance), 'info');
+        }
+
+        function loadVoices() {
+            log('Cargando voces disponibles...', 'info');
+            
+            voices = synth.getVoices();
+            const resultDiv = document.getElementById('voicesResult');
+            const listDiv = document.getElementById('voicesList');
+            
+            log(`Voces encontradas: ${voices.length}`, voices.length > 0 ? 'success' : 'warning');
+            
+            if (voices.length === 0) {
+                resultDiv.innerHTML = '<div class="warning-box">⚠️ No se encontraron voces. Espera 2 segundos y vuelve a intentar.</div>';
+                log('Array de voces vacío - puede que aún estén cargando', 'warning');
+                
+                // Reintentar después de 2 segundos
+                setTimeout(() => {
+                    log('Reintentando cargar voces...', 'info');
+                    loadVoices();
+                }, 2000);
+                return;
+            }
+            
+            resultDiv.innerHTML = `<div class="success-box">✅ Se encontraron ${voices.length} voces</div>`;
+            
+            let html = '';
+            voices.forEach((voice, i) => {
+                const isSpanish = voice.lang.startsWith('es');
+                const emoji = isSpanish ? '🇪🇸' : '🌐';
+                html += `
+                    <div class="voice-item" style="border-left-color: ${isSpanish ? '#28a745' : '#6c757d'}">
+                        ${emoji} <strong>${i + 1}.</strong> ${voice.name} 
+                        <span style="color: #666;">(${voice.lang})</span>
+                        ${voice.default ? ' <strong>[Predeterminada]</strong>' : ''}
+                        ${voice.localService ? ' <span style="color: #28a745;">[Local]</span>' : ' <span style="color: #ffc107;">[Remota]</span>'}
+                    </div>
+                `;
+                log(`Voz ${i + 1}: ${voice.name} (${voice.lang}) ${voice.localService ? '[Local]' : '[Remota]'}`, 'info');
+            });
+            listDiv.innerHTML = html;
+        }
+
+        function testSimpleSynthesis() {
+            log('Iniciando síntesis simple...', 'info');
+            
+            try {
+                synth.cancel(); // Cancelar cualquier síntesis en curso
+                
+                const utterance = new SpeechSynthesisUtterance('Hola mundo, esta es una prueba de síntesis de voz');
+                utterance.lang = 'es-ES';
+                
+                utterance.onstart = () => log('▶️ Síntesis iniciada', 'success');
+                utterance.onend = () => log('✅ Síntesis completada', 'success');
+                utterance.onerror = (e) => {
+                    log(`❌ Error en síntesis: ${e.error}`, 'error');
+                    log(`Tipo de error: ${e.error}, Mensaje: ${e.message || 'N/A'}`, 'error');
+                };
+                
+                synth.speak(utterance);
+                log('Comando speak() ejecutado', 'info');
+                
+            } catch (error) {
+                log(`❌ Exception al crear síntesis: ${error.message}`, 'error');
+            }
+        }
+
+        function testSpanishSynthesis() {
+            log('Buscando voz en español...', 'info');
+            
+            voices = synth.getVoices();
+            
+            if (voices.length === 0) {
+                log('No hay voces disponibles. Ejecuta Test 2 primero.', 'warning');
+                return;
+            }
+            
+            const spanishVoice = voices.find(v => v.lang.startsWith('es'));
+            
+            if (!spanishVoice) {
+                log('⚠️ No se encontró voz en español, usando voz predeterminada', 'warning');
+                testSimpleSynthesis();
+                return;
+            }
+            
+            log(`Usando voz: ${spanishVoice.name} (${spanishVoice.lang})`, 'info');
+            
+            try {
+                synth.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance('Bienvenido a Vocal Cart. Prueba de síntesis en español.');
+                utterance.lang = 'es-ES';
+                utterance.voice = spanishVoice;
+                
+                utterance.onstart = () => log('▶️ Síntesis con voz española iniciada', 'success');
+                utterance.onend = () => log('✅ Síntesis con voz española completada', 'success');
+                utterance.onerror = (e) => log(`❌ Error: ${e.error}`, 'error');
+                
+                synth.speak(utterance);
+                log('Comando speak() con voz española ejecutado', 'info');
+                
+            } catch (error) {
+                log(`❌ Exception: ${error.message}`, 'error');
+            }
+        }
+
+        function testFirstVoice() {
+            log('Probando con la primera voz disponible...', 'info');
+            
+            voices = synth.getVoices();
+            
+            if (voices.length === 0) {
+                log('No hay voces disponibles. Ejecuta Test 2 primero.', 'warning');
+                return;
+            }
+            
+            const firstVoice = voices[0];
+            log(`Usando primera voz: ${firstVoice.name} (${firstVoice.lang})`, 'info');
+            
+            try {
+                synth.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance('Hello world, this is a voice synthesis test');
+                utterance.voice = firstVoice;
+                utterance.lang = firstVoice.lang;
+                
+                utterance.onstart = () => log('▶️ Síntesis iniciada con primera voz', 'success');
+                utterance.onend = () => log('✅ Síntesis completada con primera voz', 'success');
+                utterance.onerror = (e) => log(`❌ Error: ${e.error}`, 'error');
+                
+                synth.speak(utterance);
+                log('Comando speak() con primera voz ejecutado', 'info');
+                
+            } catch (error) {
+                log(`❌ Exception: ${error.message}`, 'error');
+            }
+        }
+
+        // Cargar voces automáticamente
+        window.addEventListener('load', () => {
+            log('Página cargada', 'info');
+            
+            // Esperar a que las voces estén disponibles
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = () => {
+                    log('Evento voiceschanged disparado', 'info');
+                    voices = synth.getVoices();
+                    log(`Voces cargadas automáticamente: ${voices.length}`, voices.length > 0 ? 'success' : 'warning');
+                };
+            }
+            
+            // Intentar cargar voces inmediatamente
+            setTimeout(() => {
+                checkSupport();
+                loadVoices();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

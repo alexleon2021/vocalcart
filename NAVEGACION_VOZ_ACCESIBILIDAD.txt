@@ -1,0 +1,235 @@
+╔═══════════════════════════════════════════════════════════════╗
+║   ✅ NAVEGACIÓN POR VOZ PARA DISCAPACIDAD VISUAL - LISTO    ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎯 PROBLEMA RESUELTO:
+
+Personas con discapacidad visual necesitan ORIENTACIÓN para:
+- Saber dónde crear cuenta si no la tienen
+- Saber dónde iniciar sesión si ya tienen cuenta
+- Navegar entre login y registro usando VOZ
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SOLUCIONES IMPLEMENTADAS:
+
+1️⃣ MENSAJES DE BIENVENIDA CON VOZ
+2️⃣ COMANDOS DE NAVEGACIÓN ENTRE PÁGINAS
+3️⃣ INSTRUCCIONES AUDIBLES AL CARGAR
+4️⃣ BOTONES EN MODAL DE ASISTENTE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔊 MENSAJE DE BIENVENIDA - LOGIN
+
+Al cargar http://localhost:8000/login/ se escucha:
+
+"Bienvenido a VOCALCART, tienda accesible. 
+Página de inicio de sesión cargada. 
+Si no tienes cuenta, di: crear cuenta. 
+Si ya tienes cuenta, presiona ESPACIO y di: 
+mi usuario es, seguido de tu nombre."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔊 MENSAJE DE BIENVENIDA - REGISTRO
+
+Al cargar http://localhost:8000/registro/ se escucha:
+
+"Bienvenido a VOCALCART, tienda accesible. 
+Página de registro cargada. 
+Crea tu nueva cuenta usando comandos de voz. 
+Presiona ESPACIO y di: mi usuario es, seguido de tu nombre de usuario. 
+Si ya tienes cuenta, di: iniciar sesión."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎤 COMANDOS DE NAVEGACIÓN - DESDE LOGIN
+
+Usuario en http://localhost:8000/login/ puede decir:
+
+✅ "crear cuenta"
+✅ "registrarse"
+✅ "registro"
+✅ "nueva cuenta"
+✅ "no tengo cuenta"
+
+→ Respuesta: "Te llevaré a la página de registro para crear tu cuenta."
+→ Acción: Redirige a /registro/ después de 1.5 segundos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎤 COMANDOS DE NAVEGACIÓN - DESDE REGISTRO
+
+Usuario en http://localhost:8000/registro/ puede decir:
+
+✅ "iniciar sesión"
+✅ "ir al login"
+✅ "ya tengo cuenta"
+✅ "volver al login"
+✅ "tengo cuenta"
+
+→ Respuesta: "Te llevaré a la página de inicio de sesión."
+→ Acción: Redirige a /login/ después de 1.5 segundos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 MODAL DE ASISTENTE - LOGIN
+
+Al abrir el modal de asistente en login, ahora incluye:
+
+┌────────────────────────────────────────┐
+│ 🎤 Comandos de Voz:                   │
+│                                        │
+│ [mi usuario es [nombre]]               │
+│ [mi contraseña es [clave]]             │
+│ [iniciar sesión]                       │
+│ [👤 crear cuenta] ← NUEVO             │
+│ [limpiar]                              │
+│ [leer campos]                          │
+│ [ayuda]                                │
+└────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 MODAL DE ASISTENTE - REGISTRO
+
+Al abrir el modal de asistente en registro, ahora incluye:
+
+┌────────────────────────────────────────┐
+│ 🎤 Comandos de Voz:                   │
+│                                        │
+│ Push-to-Talk: Mantén ESPACIO          │
+│                                        │
+│ [mi usuario es [nombre]]               │
+│ [mi email es [correo]]                 │
+│ [mi nombre es [tu nombre]]             │
+│ [registrar]                            │
+│ [🔑 iniciar sesión] ← NUEVO           │
+│ [leer campos]                          │
+│ [ayuda]                                │
+└────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎬 FLUJO COMPLETO - USUARIO NUEVO
+
+1. Usuario entra a http://localhost:8000/login/
+
+2. Escucha: "Si no tienes cuenta, di: crear cuenta..."
+
+3. Usuario dice: "crear cuenta"
+
+4. Sistema dice: "Te llevaré a la página de registro..."
+
+5. Redirige a http://localhost:8000/registro/
+
+6. Escucha: "Página de registro cargada..."
+
+7. Usuario crea cuenta con comandos de voz
+
+8. Sistema redirige al login tras registro exitoso
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎬 FLUJO COMPLETO - USUARIO EXISTENTE
+
+1. Usuario entra a http://localhost:8000/registro/ (por error)
+
+2. Escucha: "Si ya tienes cuenta, di: iniciar sesión..."
+
+3. Usuario dice: "ya tengo cuenta"
+
+4. Sistema dice: "Te llevaré a la página de inicio de sesión..."
+
+5. Redirige a http://localhost:8000/login/
+
+6. Escucha: "Página de inicio de sesión cargada..."
+
+7. Usuario inicia sesión con comandos de voz
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 BENEFICIOS PARA DISCAPACIDAD VISUAL:
+
+✅ ORIENTACIÓN INMEDIATA: Al cargar la página, el usuario sabe dónde está
+
+✅ NAVEGACIÓN AUTÓNOMA: No necesita ayuda para cambiar entre páginas
+
+✅ MÚLTIPLES FORMAS: Varios comandos funcionan ("crear cuenta", "no tengo cuenta", etc.)
+
+✅ CONFIRMACIÓN AUDITIVA: El sistema confirma la acción antes de redirigir
+
+✅ TIEMPO SUFICIENTE: 1.5 segundos entre confirmación y redirección
+
+✅ CONTEXTO CLARO: Siempre se indica "VOCALCART, tienda accesible"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 COMPARACIÓN ANTES VS AHORA
+
+ANTES:
+❌ Usuario con discapacidad visual no sabía cómo crear cuenta
+❌ Necesitaba asistencia de otra persona
+❌ No había orientación auditiva
+❌ No podía navegar entre páginas con voz
+
+AHORA:
+✅ Usuario recibe instrucciones al cargar la página
+✅ Puede navegar completamente solo
+✅ Orientación auditiva clara y contextual
+✅ Navegación completa por voz entre login y registro
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 PRUEBA AHORA:
+
+PRUEBA 1 - Login → Registro:
+1. Ve a http://localhost:8000/login/
+2. Espera 1.5 segundos
+3. Escucha el mensaje de bienvenida
+4. Presiona ESPACIO y di: "crear cuenta"
+5. Escucha confirmación
+6. Verás que redirige a /registro/
+
+PRUEBA 2 - Registro → Login:
+1. Ve a http://localhost:8000/registro/
+2. Espera 1.5 segundos
+3. Escucha el mensaje de bienvenida
+4. Presiona ESPACIO y di: "ya tengo cuenta"
+5. Escucha confirmación
+6. Verás que redirige a /login/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 CÓDIGO AGREGADO:
+
+1. LOGIN.HTML - Mensaje de bienvenida (línea ~450):
+   "Si no tienes cuenta, di: crear cuenta..."
+
+2. LOGIN.HTML - Comandos de navegación (línea ~930):
+   if (comando.includes('crear cuenta') || ...)
+       window.location.href = '/registro/';
+
+3. REGISTRARSE.HTML - Mensaje de bienvenida (línea ~585):
+   "Si ya tienes cuenta, di: iniciar sesión..."
+
+4. REGISTRARSE.HTML - Comandos de navegación (línea ~1130):
+   if (comando.includes('iniciar sesión') || ...)
+       window.location.href = '/login/';
+
+5. Ambos archivos - Botones en modal de asistente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SISTEMA COMPLETAMENTE ACCESIBLE
+
+Login ✅ + Registro ✅ + Navegación entre ambos ✅
+
+Usuario con discapacidad visual puede:
+- Crear cuenta completamente solo
+- Iniciar sesión completamente solo
+- Navegar entre páginas completamente solo
+- Todo usando únicamente comandos de voz
+
+🎯 MISIÓN CUMPLIDA

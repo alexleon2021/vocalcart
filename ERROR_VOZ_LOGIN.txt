@@ -1,0 +1,107 @@
+═══════════════════════════════════════════════════════════════════
+🚨 SOLUCIÓN RÁPIDA: "No se pudo iniciar el reconocimiento de voz"
+═══════════════════════════════════════════════════════════════════
+
+📍 HERRAMIENTA DE DIAGNÓSTICO CREADA
+═══════════════════════════════════════════════════════════════════
+
+He creado una página especial para diagnosticar tu problema:
+
+📂 Ubicación:
+/home/d4n7dev/Escritorio/DEV/vocalcart/diagnosticar_voz_login.html
+
+🚀 CÓMO USARLA:
+1. Abre el archivo en tu navegador (doble clic)
+2. Verás el estado de tu navegador automáticamente
+3. Ejecuta los 3 tests
+4. Copia el "Log de Eventos" y pégalo aquí
+
+═══════════════════════════════════════════════════════════════════
+🔍 DIAGNÓSTICO RÁPIDO EN EL LOGIN
+═══════════════════════════════════════════════════════════════════
+
+1. Abre: http://localhost:8000/login/
+
+2. Presiona F12 → pestaña "Console"
+
+3. Presiona la barra ESPACIO
+
+4. MIRA LA CONSOLA - Deberías ver:
+   ✅ 🎤 Intentando iniciar reconocimiento de voz...
+   ✅ reconocimientoVoz existe: true
+   ✅ ✅ Llamando a reconocimientoVoz.start()...
+
+5. ¿Ves un error en ROJO? → Cópialo y pégalo aquí
+
+═══════════════════════════════════════════════════════════════════
+🎯 SOLUCIONES RÁPIDAS POR ERROR
+═══════════════════════════════════════════════════════════════════
+
+ERROR: "not-allowed" o "permission-denied"
+→ SOLUCIÓN:
+  1. Clic en el 🔒 de la barra de direcciones
+  2. Micrófono → Permitir
+  3. Recarga (F5)
+
+ERROR: "no-speech"
+→ SOLUCIÓN:
+  1. Verifica que el micrófono funcione
+  2. Habla más cerca del micrófono
+  3. Prueba: pactl list sources short
+
+ERROR: "audio-capture"
+→ SOLUCIÓN:
+  1. Reconecta tu micrófono
+  2. Verifica: pactl list sources short
+
+ERROR: "network"
+→ SOLUCIÓN:
+  Web Speech API requiere internet
+  (El frontend React usa Vosk offline)
+
+ERROR: "InvalidStateError"
+→ Se soluciona automáticamente
+  (El código lo maneja ahora)
+
+═══════════════════════════════════════════════════════════════════
+🚀 PRUEBA CON CHROMIUM
+═══════════════════════════════════════════════════════════════════
+
+Chromium suele funcionar mejor:
+
+chromium --enable-speech-input http://localhost:8000/login/
+
+═══════════════════════════════════════════════════════════════════
+📊 QUÉ INFORMACIÓN NECESITO
+═══════════════════════════════════════════════════════════════════
+
+Para ayudarte, dime:
+
+1. ¿Qué navegador usas? (Chrome/Chromium/Edge/Firefox)
+
+2. ¿Qué ves en la consola (F12) cuando presionas ESPACIO?
+   (Copia todo el texto en rojo si hay error)
+
+3. ¿Qué dice el panel lateral en "Transcript:"?
+
+4. ¿Te pidió permiso de micrófono?
+   □ Sí, lo permití
+   □ Sí, lo denegué  
+   □ No apareció nada
+
+5. ¿Funciona el micrófono en otras apps?
+
+═══════════════════════════════════════════════════════════════════
+✅ MEJORAS IMPLEMENTADAS
+═══════════════════════════════════════════════════════════════════
+
+He mejorado login.html para que ahora:
+✅ Muestra logs detallados en consola
+✅ Muestra errores en el transcript (color rojo)
+✅ Te dice exactamente qué falló
+✅ Se recupera automáticamente de algunos errores
+✅ Muestra el nombre y mensaje del error específico
+
+═══════════════════════════════════════════════════════════════════
+
+🎯 DIME QUÉ ERROR VES Y TE AYUDO A SOLUCIONARLO

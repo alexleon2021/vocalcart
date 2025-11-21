@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chrome Voice - Diagnóstico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button.listening {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .transcript-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 100px;
+            margin: 15px 0;
+            border: 2px solid #dee2e6;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .log {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 15px 0;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .info-box {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            background: #e7f3ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Diagnóstico de Voz para Chrome/Chromium</h1>
+        
+        <div class="info-box">
+            <strong>Navegador:</strong> <span id="browser"></span><br>
+            <strong>Sistema:</strong> <span id="os"></span><br>
+            <strong>URL:</strong> <span id="url"></span>
+        </div>
+
+        <div id="compatibility"></div>
+
+        <!-- SECCIÓN 1: Test de síntesis de voz -->
+        <div class="test-section">
+            <h2>Test 1: Síntesis de Voz (Hablar)</h2>
+            <button id="btnTestSpeak">🔊 Probar Síntesis de Voz</button>
+            <div id="speakStatus" class="status info">Presiona el botón para probar</div>
+        </div>
+
+        <!-- SECCIÓN 2: Test de reconocimiento con Click -->
+        <div class="test-section">
+            <h2>Test 2: Reconocimiento con Click</h2>
+            <button id="btnStartClick">🎤 Iniciar Reconocimiento</button>
+            <button id="btnStop" disabled>🛑 Detener</button>
+            <div id="clickStatus" class="status info">Presiona "Iniciar Reconocimiento"</div>
+            <div class="transcript-box" id="clickTranscript">Esperando...</div>
+        </div>
+
+        <!-- SECCIÓN 3: Test Push-to-Talk -->
+        <div class="test-section">
+            <h2>Test 3: Push-to-Talk (Barra Espaciadora)</h2>
+            <div class="status warning">
+                ⌨️ Mantén presionada la BARRA ESPACIADORA mientras hablas
+            </div>
+            <div id="pttStatus" class="status info">Presiona y mantén ESPACIO</div>
+            <div class="transcript-box" id="pttTranscript">Esperando barra espaciadora...</div>
+        </div>
+
+        <!-- LOG -->
+        <h2>Log de Eventos</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        // Detectar navegador
+        const ua = navigator.userAgent;
+        const isChrome = ua.includes('Chrome') && !ua.includes('Edg');
+        const isChromium = ua.includes('Chromium');
+        const isEdge = ua.includes('Edg');
+        
+        document.getElementById('browser').textContent = isEdge ? 'Edge' : isChromium ? 'Chromium' : isChrome ? 'Chrome' : 'Otro';
+        document.getElementById('os').textContent = navigator.platform;
+        document.getElementById('url').textContent = window.location.href;
+
+        // Logging
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = {
+                'error': '#ff4444',
+                'success': '#00ff00',
+                'warning': '#ffaa00',
+                'info': '#00ffff'
+            }[type] || '#00ff00';
+            
+            logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${time}] ${message}`);
+        }
+
+        // Verificar compatibilidad
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.speechSynthesis;
+        const compatDiv = document.getElementById('compatibility');
+
+        if (!SpeechRecognition) {
+            compatDiv.innerHTML = '<div class="status error">❌ SpeechRecognition NO disponible en este navegador</div>';
+            log('❌ CRÍTICO: SpeechRecognition no está disponible', 'error');
+        } else {
+            compatDiv.innerHTML = '<div class="status success">✅ SpeechRecognition disponible</div>';
+            log('✅ SpeechRecognition detectado', 'success');
+        }
+
+        if (!SpeechSynthesis) {
+            log('❌ SpeechSynthesis no disponible', 'error');
+        } else {
+            log('✅ SpeechSynthesis disponible', 'success');
+        }
+
+        // TEST 1: Síntesis de voz
+        document.getElementById('btnTestSpeak').addEventListener('click', () => {
+            const statusDiv = document.getElementById('speakStatus');
+            try {
+                const utterance = new SpeechSynthesisUtterance('Hola, esto es una prueba de síntesis de voz en español');
+                utterance.lang = 'es-ES';
+                utterance.onstart = () => {
+                    log('🔊 Síntesis de voz iniciada', 'success');
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Hablando...';
+                };
+                utterance.onend = () => {
+                    log('🔊 Síntesis de voz completada', 'success');
+                    statusDiv.textContent = '✅ Síntesis funcionando correctamente';
+                };
+                utterance.onerror = (e) => {
+                    log(`❌ Error en síntesis: ${e.error}`, 'error');
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Error: ${e.error}`;
+                };
+                speechSynthesis.speak(utterance);
+            } catch (error) {
+                log(`❌ Excepción en síntesis: ${error.message}`, 'error');
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        });
+
+        // TEST 2: Reconocimiento con Click
+        let clickRecognition = null;
+        let isClickListening = false;
+
+        if (SpeechRecognition) {
+            clickRecognition = new SpeechRecognition();
+            clickRecognition.lang = 'es-ES';
+            clickRecognition.continuous = true;
+            clickRecognition.interimResults = true;
+
+            clickRecognition.onstart = () => {
+                isClickListening = true;
+                document.getElementById('btnStartClick').disabled = true;
+                document.getElementById('btnStop').disabled = false;
+                document.getElementById('clickStatus').className = 'status success';
+                document.getElementById('clickStatus').textContent = '✅ Escuchando... Habla ahora';
+                log('✅ Reconocimiento iniciado (Click)', 'success');
+            };
+
+            clickRecognition.onend = () => {
+                isClickListening = false;
+                document.getElementById('btnStartClick').disabled = false;
+                document.getElementById('btnStop').disabled = true;
+                document.getElementById('clickStatus').className = 'status info';
+                document.getElementById('clickStatus').textContent = 'Detenido';
+                log('🔴 Reconocimiento finalizado (Click)', 'info');
+            };
+
+            clickRecognition.onerror = (event) => {
+                document.getElementById('clickStatus').className = 'status error';
+                document.getElementById('clickStatus').textContent = `❌ Error: ${event.error}`;
+                log(`❌ ERROR (Click): ${event.error}`, 'error');
+                
+                if (event.error === 'not-allowed') {
+                    alert('🚫 PERMISO DENEGADO\n\nHaz clic en el icono de candado en la barra de direcciones y permite el acceso al micrófono.');
+                }
+            };
+
+            clickRecognition.onresult = (event) => {
+                const result = event.results[event.results.length - 1];
+                const text = result[0].transcript;
+                document.getElementById('clickTranscript').textContent = text;
+                log(`📝 ${result.isFinal ? 'FINAL' : 'INTERIM'} (Click): "${text}"`, result.isFinal ? 'success' : 'warning');
+            };
+        }
+
+        document.getElementById('btnStartClick').addEventListener('click', () => {
+            if (clickRecognition) {
+                try {
+                    clickRecognition.start();
+                    log('🎯 Intentando iniciar reconocimiento (Click)...', 'info');
+                } catch (error) {
+                    log(`❌ Error al iniciar (Click): ${error.message}`, 'error');
+                }
+            }
+        });
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            if (clickRecognition && isClickListening) {
+                clickRecognition.stop();
+                log('🛑 Deteniendo reconocimiento (Click)...', 'info');
+            }
+        });
+
+        // TEST 3: Push-to-Talk
+        let pttRecognition = null;
+        let isPTTActive = false;
+
+        if (SpeechRecognition) {
+            pttRecognition = new SpeechRecognition();
+            pttRecognition.lang = 'es-ES';
+            pttRecognition.continuous = true;
+            pttRecognition.interimResults = true;
+
+            pttRecognition.onstart = () => {
+                document.getElementById('pttStatus').className = 'status success';
+                document.getElementById('pttStatus').textContent = '✅ ESCUCHANDO... Habla ahora';
+                log('✅ Push-to-Talk activado', 'success');
+            };
+
+            pttRecognition.onend = () => {
+                if (isPTTActive) {
+                    log('🔄 Reconocimiento terminó pero ESPACIO sigue presionado, reiniciando...', 'warning');
+                    try {
+                        pttRecognition.start();
+                    } catch (e) {
+                        log(`⚠️ Error al reiniciar: ${e.message}`, 'warning');
+                    }
+                } else {
+                    document.getElementById('pttStatus').className = 'status info';
+                    document.getElementById('pttStatus').textContent = 'Presiona y mantén ESPACIO';
+                    log('🛑 Push-to-Talk desactivado', 'info');
+                }
+            };
+
+            pttRecognition.onerror = (event) => {
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    document.getElementById('pttStatus').className = 'status error';
+                    document.getElementById('pttStatus').textContent = `❌ Error: ${event.error}`;
+                    log(`❌ ERROR (PTT): ${event.error}`, 'error');
+                    isPTTActive = false;
+                    
+                    if (event.error === 'not-allowed') {
+                        alert('🚫 PERMISO DENEGADO\n\nHaz clic en el icono de candado en la barra de direcciones y permite el acceso al micrófono.');
+                    }
+                }
+            };
+
+            pttRecognition.onresult = (event) => {
+                const result = event.results[event.results.length - 1];
+                const text = result[0].transcript;
+                document.getElementById('pttTranscript').textContent = text;
+                log(`📝 ${result.isFinal ? 'FINAL' : 'INTERIM'} (PTT): "${text}"`, result.isFinal ? 'success' : 'warning');
+            };
+        }
+
+        // Event listeners para barra espaciadora
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON'].includes(e.target.tagName) && !isPTTActive) {
+                e.preventDefault();
+                isPTTActive = true;
+                log('⌨️ ESPACIO presionado - activando PTT', 'info');
+                if (pttRecognition) {
+                    try {
+                        pttRecognition.start();
+                    } catch (error) {
+                        if (!error.message.includes('already started')) {
+                            log(`❌ Error al iniciar PTT: ${error.message}`, 'error');
+                        }
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && isPTTActive) {
+                e.preventDefault();
+                isPTTActive = false;
+                log('⌨️ ESPACIO soltado - desactivando PTT', 'info');
+                if (pttRecognition) {
+                    pttRecognition.stop();
+                }
+            }
+        });
+
+        // Log inicial
+        log('🚀 Página de diagnóstico cargada', 'success');
+        log(`📊 Navegador: ${document.getElementById('browser').textContent}`, 'info');
+        log(`💻 Sistema: ${document.getElementById('os').textContent}`, 'info');
+        log(`🌐 URL: ${window.location.href}`, 'info');
+        log('', 'info');
+        log('═══════════════════════════════════════', 'info');
+        log('INSTRUCCIONES:', 'warning');
+        log('1. Prueba Test 1: Síntesis de voz', 'info');
+        log('2. Prueba Test 2: Click en "Iniciar Reconocimiento"', 'info');
+        log('3. Prueba Test 3: Presiona barra espaciadora y habla', 'info');
+        log('═══════════════════════════════════════', 'info');
+    </script>
+</body>
+</html>

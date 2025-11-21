@@ -1,0 +1,156 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     ✅ CHECKOUT POR VOZ COMPLETAMENTE FUNCIONAL               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎯 CONTROL POR VOZ AGREGADO AL CHECKOUT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 CAMBIOS REALIZADOS:
+
+✅ Indicador visual de "Control por Voz Activado"
+   → Aparece en la parte superior del modal
+   → Muestra el transcript en tiempo real
+   → Da ejemplos de comandos
+
+✅ Instrucciones de audio mejoradas en cada paso
+   → Incluye cantidad de productos y total
+   → Explica todos los comandos disponibles
+   → Menciona "ayuda" para escuchar comandos
+
+✅ Comandos de voz completos con validación:
+   → PASO 1: Datos de facturación y pago (7 campos)
+   → PASO 2: Opciones de envío (4 campos)
+   → PASO 3: Confirmación final
+   → Navegación: siguiente, atrás, cancelar, ayuda
+
+✅ Feedback de voz al completar campos
+   → Confirma cada dato ingresado
+   → Valida formato (email con @, teléfono con 7+ dígitos)
+   → Capitaliza nombres automáticamente
+   → Convierte "arroba" → @ y "punto" → .
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎤 CÓMO USARLO:
+
+1. Desde la tienda, di:
+   [ESPACIO] "agregar cinco manzanas"
+
+2. Inicia el checkout:
+   [ESPACIO] "finalizar compra"
+
+3. Verás el modal con el indicador de voz arriba 👆
+
+4. Llena los datos por voz:
+
+   PASO 1 - Facturación y Pago:
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   [ESPACIO] "mi nombre es Juan Pérez"
+   → "Nombre registrado: Juan Pérez. Campo completado."
+
+   [ESPACIO] "mi documento es 1234567890"
+   → "Documento registrado: 1234567890. Campo completado."
+
+   [ESPACIO] "mi teléfono es 3001234567"
+   → "Teléfono registrado: 3001234567. Campo completado."
+
+   [ESPACIO] "mi correo es juan arroba gmail punto com"
+   → "Correo electrónico registrado: juan@gmail.com. Campo completado."
+
+   [ESPACIO] "mi tarjeta es 4532123456789012"
+   → "Tarjeta registrada"
+
+   [ESPACIO] "código de seguridad 123"
+   → "Código de seguridad registrado"
+
+   [ESPACIO] "vencimiento 1225"
+   → "Fecha de vencimiento registrada"
+
+   [ESPACIO] "siguiente"
+   → Avanza al Paso 2
+
+   PASO 2 - Envío:
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   [ESPACIO] "con envío"
+   → "Has seleccionado envío a domicilio..."
+
+   [ESPACIO] "mi dirección es Calle 50 número 25 45"
+   → "Dirección registrada"
+
+   [ESPACIO] "mi ciudad es Bogotá"
+   → "Ciudad registrada: Bogotá"
+
+   [ESPACIO] "código postal 110111"
+   → "Código postal registrado"
+
+   [ESPACIO] "siguiente"
+   → Avanza al Paso 3
+
+   PASO 3 - Confirmación:
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   → Escucharás el resumen completo con totales
+
+   [ESPACIO] "confirmar compra"
+   → "Procesando tu compra. Por favor espera"
+   → ¡Compra completada! ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 COMANDOS ESPECIALES:
+
+✨ Para Emails:
+   - Di "arroba" para @
+   - Di "punto" para .
+   - Ejemplo: "juan arroba correo punto com" → juan@correo.com
+
+✨ Para Nombres:
+   - Se capitalizan automáticamente
+   - "juan pérez" → "Juan Pérez"
+
+✨ Validaciones:
+   - Documento: mínimo 6 dígitos
+   - Teléfono: mínimo 7 dígitos
+   - Email: debe tener @ y .
+   - Te avisa si algo está mal
+
+✨ Navegación:
+   - "ayuda" en cualquier paso para escuchar comandos
+   - "siguiente" para avanzar
+   - "atrás" para retroceder
+   - "cancelar" para salir
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 PRUÉBALO AHORA:
+
+1. Asegúrate de que backend esté corriendo:
+   cd vocalcart
+   source ../envvocalcart/bin/activate
+   python manage.py runserver
+
+2. Asegúrate de que frontend esté corriendo:
+   cd vocalcart/front
+   npm run dev
+
+3. Abre http://localhost:5173
+
+4. [ESPACIO] "agregar dos naranjas"
+   [ESPACIO] "finalizar compra"
+   
+5. ¡Sigue las instrucciones de audio!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 CARACTERÍSTICAS:
+
+🔊 Audio feedback inmediato en cada acción
+🎯 Validación en tiempo real con avisos de voz
+📢 Instrucciones detalladas en cada paso
+⚡ Capitalización y formato automático
+✅ Confirmación al completar cada campo
+🎤 100% manos libres
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 ¡DISFRUTA DE UN CHECKOUT TOTALMENTE ACCESIBLE POR VOZ!

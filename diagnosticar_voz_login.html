@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Diagnóstico de Reconocimiento de Voz - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status.warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .status.info {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .log {
+            background: #1e293b;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #10b981;
+            padding-left: 10px;
+        }
+        
+        .log-entry.error {
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            color: #f59e0b;
+        }
+        
+        .log-entry.info {
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .transcript {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 60px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #374151;
+            margin: 15px 0;
+        }
+        
+        .test-section {
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+            margin: 20px 0;
+        }
+        
+        kbd {
+            background: #1e293b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Diagnóstico de Reconocimiento de Voz</h1>
+            <p>Herramienta para detectar problemas con el reconocimiento de voz en el login</p>
+        </div>
+        
+        <div class="card">
+            <h2>📊 Estado del Navegador</h2>
+            <div style="margin-top: 15px;">
+                <p><strong>Navegador:</strong> <span id="browser-info"></span></p>
+                <p><strong>Web Speech API:</strong> <span id="api-status"></span></p>
+                <p><strong>SpeechRecognition:</strong> <span id="recognition-status"></span></p>
+                <p><strong>SpeechSynthesis:</strong> <span id="synthesis-status"></span></p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🧪 Test 1: Iniciar Reconocimiento (Click)</h2>
+            <p>Prueba si puedes iniciar el reconocimiento con un botón</p>
+            <button onclick="testReconocimientoClick()">🎤 Iniciar Reconocimiento</button>
+            <button onclick="detenerReconocimiento()">⏹️ Detener</button>
+            <div class="transcript" id="transcript-click">Presiona el botón y habla...</div>
+        </div>
+        
+        <div class="card">
+            <h2>🧪 Test 2: Push-to-Talk (Spacebar)</h2>
+            <p>Mantén presionada la tecla <kbd>ESPACIO</kbd> y habla</p>
+            <div class="transcript" id="transcript-ptt">Mantén ESPACIO presionado y habla...</div>
+            <p style="margin-top: 10px;"><strong>Estado PTT:</strong> <span id="ptt-status" class="status info">Esperando...</span></p>
+        </div>
+        
+        <div class="card">
+            <h2>🧪 Test 3: Permisos de Micrófono</h2>
+            <button onclick="verificarPermisos()">🔍 Verificar Permisos</button>
+            <div id="permisos-info" style="margin-top: 15px;"></div>
+        </div>
+        
+        <div class="card">
+            <h2>📋 Log de Eventos</h2>
+            <button onclick="limpiarLog()">🗑️ Limpiar Log</button>
+            <button onclick="copiarLog()">📋 Copiar Log</button>
+            <div class="log" id="event-log"></div>
+        </div>
+    </div>
+
+    <script>
+        let reconocimientoVoz = null;
+        let escuchando = false;
+        let spacebarPressed = false;
+        const eventLog = [];
+        
+        // Función para agregar al log
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            eventLog.push({ time: timestamp, message, type });
+            
+            const logDiv = document.getElementById('event-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = entry;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(entry);
+        }
+        
+        // Detectar navegador
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            let browserName = 'Desconocido';
+            
+            if (ua.includes('Chrome') && !ua.includes('Edg')) browserName = 'Chrome/Chromium';
+            else if (ua.includes('Edg')) browserName = 'Edge';
+            else if (ua.includes('Firefox')) browserName = 'Firefox';
+            else if (ua.includes('Safari') && !ua.includes('Chrome')) browserName = 'Safari';
+            
+            return browserName;
+        }
+        
+        // Inicializar diagnóstico
+        function inicializarDiagnostico() {
+            addLog('🚀 Iniciando diagnóstico...', 'info');
+            
+            // Información del navegador
+            const browserName = detectBrowser();
+            document.getElementById('browser-info').textContent = browserName;
+            addLog(`Navegador detectado: ${browserName}`, 'info');
+            
+            // Verificar APIs
+            const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            const hasSpeechSynthesis = 'speechSynthesis' in window;
+            
+            document.getElementById('api-status').innerHTML = hasSpeechRecognition ? 
+                '<span class="status success">✅ Disponible</span>' : 
+                '<span class="status error">❌ No disponible</span>';
+            
+            document.getElementById('recognition-status').innerHTML = hasSpeechRecognition ? 
+                '<span class="status success">✅ Soportado</span>' : 
+                '<span class="status error">❌ No soportado</span>';
+            
+            document.getElementById('synthesis-status').innerHTML = hasSpeechSynthesis ? 
+                '<span class="status success">✅ Soportado</span>' : 
+                '<span class="status error">❌ No soportado</span>';
+            
+            if (!hasSpeechRecognition) {
+                addLog('❌ ERROR: SpeechRecognition no está disponible en este navegador', 'error');
+                addLog('💡 Solución: Usa Chrome, Edge o Safari', 'warning');
+                return;
+            }
+            
+            // Crear instancia de SpeechRecognition
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                reconocimientoVoz = new SpeechRecognition();
+                reconocimientoVoz.continuous = true;
+                reconocimientoVoz.interimResults = true;
+                reconocimientoVoz.lang = 'es-ES';
+                
+                addLog('✅ Instancia de SpeechRecognition creada correctamente', 'info');
+                
+                // Configurar eventos
+                reconocimientoVoz.onstart = function() {
+                    escuchando = true;
+                    addLog('✅ Reconocimiento iniciado', 'info');
+                };
+                
+                reconocimientoVoz.onend = function() {
+                    escuchando = false;
+                    addLog('⏹️ Reconocimiento detenido', 'info');
+                    document.getElementById('ptt-status').innerHTML = '<span class="status info">Detenido</span>';
+                };
+                
+                reconocimientoVoz.onresult = function(event) {
+                    const ultima = event.results.length - 1;
+                    const transcript = event.results[ultima][0].transcript;
+                    const isFinal = event.results[ultima].isFinal;
+                    const confidence = event.results[ultima][0].confidence;
+                    
+                    document.getElementById('transcript-click').textContent = transcript;
+                    document.getElementById('transcript-ptt').textContent = transcript;
+                    
+                    if (isFinal) {
+                        addLog(`✅ Reconocido: "${transcript}" (confianza: ${(confidence * 100).toFixed(1)}%)`, 'info');
+                    } else {
+                        addLog(`🎙️ Parcial: "${transcript}"`, 'info');
+                    }
+                };
+                
+                reconocimientoVoz.onerror = function(event) {
+                    addLog(`❌ ERROR: ${event.error}`, 'error');
+                    addLog(`Detalles: ${event.message || 'Sin mensaje adicional'}`, 'error');
+                    
+                    switch(event.error) {
+                        case 'not-allowed':
+                        case 'permission-denied':
+                            addLog('💡 Solución: Permite el acceso al micrófono en la configuración del navegador', 'warning');
+                            break;
+                        case 'no-speech':
+                            addLog('💡 Solución: No se detectó voz. Habla más cerca del micrófono', 'warning');
+                            break;
+                        case 'audio-capture':
+                            addLog('💡 Solución: No se detectó micrófono. Verifica que esté conectado', 'warning');
+                            break;
+                        case 'network':
+                            addLog('💡 Solución: Error de red. El navegador necesita internet para reconocimiento', 'warning');
+                            break;
+                    }
+                };
+                
+            } catch (error) {
+                addLog(`❌ ERROR al crear SpeechRecognition: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test 1: Reconocimiento con click
+        function testReconocimientoClick() {
+            if (!reconocimientoVoz) {
+                addLog('❌ ERROR: No hay instancia de SpeechRecognition', 'error');
+                return;
+            }
+            
+            try {
+                if (escuchando) {
+                    addLog('⚠️ El reconocimiento ya está activo', 'warning');
+                    return;
+                }
+                
+                addLog('🎤 Intentando iniciar reconocimiento...', 'info');
+                reconocimientoVoz.start();
+                document.getElementById('transcript-click').textContent = '🎙️ Escuchando... habla ahora';
+                
+            } catch (error) {
+                addLog(`❌ ERROR al iniciar: ${error.name} - ${error.message}`, 'error');
+                
+                if (error.name === 'InvalidStateError') {
+                    addLog('💡 El reconocimiento ya estaba activo. Deteniendo y reiniciando...', 'warning');
+                    detenerReconocimiento();
+                    setTimeout(() => {
+                        reconocimientoVoz.start();
+                    }, 500);
+                }
+            }
+        }
+        
+        // Detener reconocimiento
+        function detenerReconocimiento() {
+            if (reconocimientoVoz && escuchando) {
+                reconocimientoVoz.stop();
+                addLog('⏹️ Deteniendo reconocimiento...', 'info');
+            }
+        }
+        
+        // Push-to-Talk
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                
+                if (!spacebarPressed && reconocimientoVoz) {
+                    spacebarPressed = true;
+                    document.getElementById('ptt-status').innerHTML = '<span class="status success">🎤 Grabando...</span>';
+                    addLog('⌨️ ESPACIO presionado - Iniciando PTT', 'info');
+                    
+                    try {
+                        if (!escuchando) {
+                            reconocimientoVoz.start();
+                        }
+                    } catch (error) {
+                        addLog(`❌ ERROR PTT: ${error.name} - ${error.message}`, 'error');
+                    }
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', function(e) {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                
+                if (spacebarPressed) {
+                    spacebarPressed = false;
+                    document.getElementById('ptt-status').innerHTML = '<span class="status warning">⏸️ Pausado</span>';
+                    addLog('⌨️ ESPACIO soltado - Deteniendo PTT', 'info');
+                    
+                    if (reconocimientoVoz && escuchando) {
+                        reconocimientoVoz.stop();
+                    }
+                }
+            }
+        });
+        
+        // Verificar permisos
+        async function verificarPermisos() {
+            addLog('🔍 Verificando permisos de micrófono...', 'info');
+            const infoDiv = document.getElementById('permisos-info');
+            
+            if (!navigator.permissions) {
+                infoDiv.innerHTML = '<p class="status warning">⚠️ API de permisos no disponible en este navegador</p>';
+                addLog('⚠️ API de permisos no disponible', 'warning');
+                return;
+            }
+            
+            try {
+                const result = await navigator.permissions.query({ name: 'microphone' });
+                addLog(`📋 Estado del permiso: ${result.state}`, 'info');
+                
+                let statusHTML = '';
+                switch(result.state) {
+                    case 'granted':
+                        statusHTML = '<p class="status success">✅ Permiso concedido</p>';
+                        addLog('✅ Micrófono: Permiso concedido', 'info');
+                        break;
+                    case 'denied':
+                        statusHTML = '<p class="status error">❌ Permiso denegado</p>';
+                        statusHTML += '<p>Debes permitir el acceso al micrófono en la configuración del navegador</p>';
+                        addLog('❌ Micrófono: Permiso denegado', 'error');
+                        addLog('💡 Ve a Configuración → Privacidad → Micrófono y permite el acceso', 'warning');
+                        break;
+                    case 'prompt':
+                        statusHTML = '<p class="status warning">⚠️ El navegador solicitará permiso</p>';
+                        addLog('⚠️ Micrófono: Se solicitará permiso al iniciar reconocimiento', 'warning');
+                        break;
+                }
+                
+                infoDiv.innerHTML = statusHTML;
+                
+            } catch (error) {
+                addLog(`❌ ERROR al verificar permisos: ${error.message}`, 'error');
+                infoDiv.innerHTML = '<p class="status error">❌ Error al verificar permisos</p>';
+            }
+        }
+        
+        // Limpiar log
+        function limpiarLog() {
+            document.getElementById('event-log').innerHTML = '';
+            eventLog.length = 0;
+            addLog('🗑️ Log limpiado', 'info');
+        }
+        
+        // Copiar log
+        function copiarLog() {
+            const logText = eventLog.map(e => `[${e.time}] ${e.message}`).join('\n');
+            navigator.clipboard.writeText(logText).then(() => {
+                addLog('📋 Log copiado al portapapeles', 'info');
+                alert('Log copiado al portapapeles');
+            });
+        }
+        
+        // Inicializar al cargar
+        window.addEventListener('load', inicializarDiagnostico);
+    </script>
+</body>
+</html>

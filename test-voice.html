@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Web Speech API - Edge Linux</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007bff;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.active {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        #transcript {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 100px;
+            margin: 15px 0;
+            border: 2px solid #dee2e6;
+        }
+        .log {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Test de Web Speech API</h1>
+        <p><strong>Navegador:</strong> <span id="browser"></span></p>
+        <p><strong>Sistema:</strong> <span id="os"></span></p>
+        
+        <div id="compatibility"></div>
+        
+        <h2>Prueba de Reconocimiento de Voz</h2>
+        
+        <button id="btnStart">🎤 Iniciar Reconocimiento</button>
+        <button id="btnStop" disabled>🛑 Detener</button>
+        <button id="btnTest">🔊 Probar Síntesis de Voz</button>
+        
+        <h3>Transcripción:</h3>
+        <div id="transcript">Presiona "Iniciar Reconocimiento" y habla...</div>
+        
+        <h3>Estado:</h3>
+        <div id="status" class="status info">Esperando...</div>
+        
+        <h3>Log de Eventos:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        // Detectar navegador y sistema
+        document.getElementById('browser').textContent = navigator.userAgent.includes('Edg') ? 'Microsoft Edge' : 
+                                                         navigator.userAgent.includes('Chrome') ? 'Google Chrome' :
+                                                         navigator.userAgent.includes('Firefox') ? 'Mozilla Firefox' : 'Otro';
+        document.getElementById('os').textContent = navigator.platform;
+
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff4444' : 
+                         type === 'success' ? '#00ff00' : 
+                         type === 'warning' ? '#ffaa00' : '#00ff00';
+            log.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(`[${time}] ${message}`);
+        }
+
+        // Verificar compatibilidad
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const compatDiv = document.getElementById('compatibility');
+
+        if (!SpeechRecognition) {
+            compatDiv.innerHTML = '<div class="status error">❌ Tu navegador NO soporta Web Speech API</div>';
+            addLog('ERROR: SpeechRecognition no está disponible', 'error');
+            document.getElementById('btnStart').disabled = true;
+        } else {
+            compatDiv.innerHTML = '<div class="status success">✅ Tu navegador SOPORTA Web Speech API</div>';
+            addLog('✅ SpeechRecognition detectado correctamente', 'success');
+        }
+
+        // Configurar reconocimiento
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('btnStart').classList.add('active');
+                document.getElementById('btnStart').textContent = '🎤 Escuchando...';
+                document.getElementById('btnStart').disabled = true;
+                document.getElementById('btnStop').disabled = false;
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').textContent = '✅ Escuchando... Habla ahora';
+                addLog('✅ Reconocimiento iniciado', 'success');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('btnStart').classList.remove('active');
+                document.getElementById('btnStart').textContent = '🎤 Iniciar Reconocimiento';
+                document.getElementById('btnStart').disabled = false;
+                document.getElementById('btnStop').disabled = true;
+                document.getElementById('status').className = 'status info';
+                document.getElementById('status').textContent = 'Reconocimiento detenido';
+                addLog('🔴 Reconocimiento finalizado', 'info');
+            };
+
+            recognition.onerror = (event) => {
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = `❌ Error: ${event.error}`;
+                addLog(`❌ ERROR: ${event.error} - ${event.message || 'Sin detalles'}`, 'error');
+                
+                // Detalles específicos del error
+                switch(event.error) {
+                    case 'not-allowed':
+                        addLog('🚫 Permiso de micrófono DENEGADO. Ve a Configuración → Permisos → Micrófono', 'error');
+                        break;
+                    case 'network':
+                        addLog('🌐 Error de RED. Verifica tu conexión a internet', 'error');
+                        break;
+                    case 'audio-capture':
+                        addLog('🎤 No se puede capturar audio. Verifica que el micrófono esté conectado', 'error');
+                        break;
+                    case 'no-speech':
+                        addLog('ℹ️ No se detectó voz. Intenta hablar más fuerte', 'warning');
+                        break;
+                }
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        transcript += result[0].transcript + ' ';
+                        addLog(`📝 FINAL: "${result[0].transcript}"`, 'success');
+                    } else {
+                        addLog(`📝 INTERIM: "${result[0].transcript}"`, 'warning');
+                    }
+                }
+                
+                if (transcript) {
+                    const transcriptDiv = document.getElementById('transcript');
+                    transcriptDiv.textContent += transcript;
+                }
+            };
+        }
+
+        // Botones
+        document.getElementById('btnStart').addEventListener('click', () => {
+            if (recognition) {
+                try {
+                    recognition.start();
+                    addLog('🎯 Intentando iniciar reconocimiento...', 'info');
+                } catch (error) {
+                    addLog(`❌ Error al iniciar: ${error.message}`, 'error');
+                }
+            }
+        });
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            if (recognition && isListening) {
+                recognition.stop();
+                addLog('🛑 Deteniendo reconocimiento...', 'info');
+            }
+        });
+
+        document.getElementById('btnTest').addEventListener('click', () => {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('Hola, esto es una prueba de síntesis de voz en español');
+                utterance.lang = 'es-ES';
+                speechSynthesis.speak(utterance);
+                addLog('🔊 Reproduciendo síntesis de voz...', 'info');
+            } else {
+                addLog('❌ Síntesis de voz no soportada', 'error');
+            }
+        });
+
+        // Log inicial
+        addLog('🚀 Página de prueba cargada correctamente', 'success');
+        addLog(`📊 Navegador: ${document.getElementById('browser').textContent}`, 'info');
+        addLog(`💻 Sistema: ${document.getElementById('os').textContent}`, 'info');
+    </script>
+</body>
+</html>

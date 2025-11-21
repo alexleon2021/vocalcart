@@ -1,0 +1,172 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     ✅ TRANSCRIPT EN TIEMPO REAL AGREGADO AL REGISTRO        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎯 CAMBIOS REALIZADOS:
+
+✅ Panel de transcript agregado en el Control de Voz
+✅ Instrucciones Push-to-Talk visibles
+✅ Actualización en tiempo real del texto reconocido
+✅ Colores diferentes según el estado del reconocimiento
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 COMPONENTES AGREGADOS:
+
+1️⃣ PANEL DE TRANSCRIPT:
+   - Ubicación: Panel de Control de Voz (superior derecha)
+   - Fondo: Translúcido oscuro
+   - Altura mínima: 30px
+   - Icono: 🎤 Micrófono
+
+2️⃣ INSTRUCCIÓN PUSH-TO-TALK:
+   - Ubicación: Debajo del transcript
+   - Fondo: Azul translúcido
+   - Texto: "Push-to-Talk: Mantén ESPACIO y habla"
+   - Icono: ⌨️ Teclado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 ESTADOS DEL TRANSCRIPT:
+
+🟢 VERDE (#10b981):
+   - Texto: "Presiona ESPACIO para hablar..."
+   - Estado: Listo para escuchar
+   - Cuando: Al conectar WebSocket
+
+🔵 AZUL CLARO (#0dcaf0):
+   - Texto: [Lo que estás diciendo]
+   - Estado: Reconocimiento parcial (en progreso)
+   - Cuando: Mientras hablas
+
+✅ VERDE BOLD (#10b981):
+   - Texto: "✓ [Comando completo]"
+   - Estado: Reconocimiento finalizado
+   - Cuando: Terminas de hablar
+
+❌ ROJO (#dc3545):
+   - Texto: "❌ Error: [mensaje]"
+   - Estado: Error en reconocimiento
+   - Cuando: Falla el reconocimiento
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💻 CÓDIGO JAVASCRIPT AGREGADO:
+
+1. EN WEBSOCKET.ONOPEN:
+   ```javascript
+   const transcriptElement = document.getElementById('transcript-voz');
+   if (transcriptElement) {
+       transcriptElement.textContent = 'Presiona ESPACIO para hablar...';
+       transcriptElement.style.color = '#10b981';
+   }
+   ```
+
+2. EN WEBSOCKET.ONMESSAGE - CASE 'PARTIAL':
+   ```javascript
+   if (transcriptElement) {
+       transcriptElement.textContent = data.transcript;
+       transcriptElement.style.fontWeight = 'normal';
+       transcriptElement.style.color = '#0dcaf0';
+   }
+   ```
+
+3. EN WEBSOCKET.ONMESSAGE - CASE 'RESULT/FINAL':
+   ```javascript
+   if (transcriptElement) {
+       transcriptElement.textContent = `✓ ${data.transcript}`;
+       transcriptElement.style.fontWeight = 'bold';
+       transcriptElement.style.color = '#10b981';
+   }
+   ```
+
+4. EN WEBSOCKET.ONMESSAGE - CASE 'ERROR':
+   ```javascript
+   if (transcriptElement) {
+       transcriptElement.textContent = `❌ Error: ${data.message}`;
+       transcriptElement.style.color = '#dc3545';
+   }
+   ```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 COMPARACIÓN: LOGIN vs REGISTRO
+
+AMBAS PÁGINAS AHORA TIENEN:
+
+✅ Panel de Transcript en tiempo real
+✅ Instrucciones Push-to-Talk visibles
+✅ Misma apariencia y comportamiento
+✅ Mismos colores según estado
+✅ Mismo sistema Vosk WebSocket
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📍 UBICACIÓN EN LA INTERFAZ:
+
+┌─────────────────────────────────────────────┐
+│  Control de Voz (superior derecha)         │
+│  ┌──────────────────────────────────────┐  │
+│  │ 🎤 Control de Voz     [ON/OFF]      │  │
+│  │ [Botones: Escuchar | Parar | Repetir]│  │
+│  │ Velocidad: [======]                  │  │
+│  │ Tipo de Voz: [Selector]              │  │
+│  │ Estado: Voz lista                    │  │
+│  │                                       │  │
+│  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │  │
+│  │ 🎤 Transcript:                       │  │
+│  │ Presiona ESPACIO para hablar...      │  │
+│  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │  │
+│  │ ⌨️ Push-to-Talk: Mantén ESPACIO     │  │
+│  └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎬 EJEMPLO DE USO:
+
+1. Usuario ve: "Presiona ESPACIO para hablar..." (VERDE)
+
+2. Usuario presiona ESPACIO
+
+3. Usuario dice: "mi usuario es danny"
+   → Ve en tiempo real: "mi usuario es danny" (AZUL)
+
+4. Usuario suelta ESPACIO
+   → Ve: "✓ mi usuario es danny" (VERDE BOLD)
+
+5. Campo username se llena con "danny" (borde verde)
+
+6. Audio dice: "Usuario danny"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ BENEFICIOS PARA USUARIOS:
+
+1. 👁️ VISUAL: Ven exactamente lo que Vosk está escuchando
+2. ✔️ CONFIRMACIÓN: Saben cuando el comando fue procesado
+3. 🔧 DEBUG: Pueden corregir si Vosk entendió mal
+4. 📱 ACCESIBILIDAD: Feedback visual adicional
+5. 🎯 CONFIANZA: Mayor seguridad al usar el sistema
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 PRUEBA AHORA:
+
+1. Ve a: http://localhost:8000/registro/
+
+2. Mira el panel de Control de Voz (esquina superior derecha)
+
+3. Presiona y MANTÉN la tecla ESPACIO
+
+4. Di: "mi usuario es danny"
+
+5. Observa el transcript:
+   - Mientras hablas: Azul, texto cambiando
+   - Al terminar: Verde con ✓
+
+6. ¡El campo se llena automáticamente!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ LISTO PARA USAR
