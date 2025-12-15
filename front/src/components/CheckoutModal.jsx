@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useVoiceAssistant } from '../hooks/useVoiceAssistant';
 import './CheckoutModal.css';
@@ -10,7 +10,14 @@ import './CheckoutModal.css';
 export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }) => {
   const [step, setStep] = useState(1); // 1: Facturación, 2: Envío, 3: Confirmación
   const [requiereEnvio, setRequiereEnvio] = useState(true);
-  const { speak, transcript, clearTranscript } = useVoiceAssistant();
+  const [currentField, setCurrentField] = useState('nombre_facturacion'); // Campo actual en modo paso a paso
+  const [resumenLeido, setResumenLeido] = useState(false); // Controla si ya se leyó el resumen antes de confirmar
+  const { speak, transcript, clearTranscript, isListening } = useVoiceAssistant();
+  
+  // Acumulador para números mientras el usuario está hablando
+  const accumulatedNumbersRef = useRef('');
+  const lastProcessedCommandRef = useRef('');
+  const commandProcessedSuccessfullyRef = useRef(false);
   
   // Direcciones de tiendas para recogida en Guayaquil, Ecuador
   const tiendasDisponibles = [
@@ -50,54 +57,56 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
   const iva = subtotal * 0.19; // IVA del 19%
   const total = subtotal + iva;
 
-  // Leer instrucciones al abrir el modal o cambiar de paso
+  // Resetear resumenLeido cuando cambia el paso
+  useEffect(() => {
+    if (step === 3) {
+      setResumenLeido(false); // Resetear cuando se llega al paso 3
+    }
+  }, [step]);
+
+  // Leer instrucciones al abrir el modal - MODO PASO A PASO
   useEffect(() => {
     if (!isOpen) return;
     
-    const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    // Resetear al primer campo cuando se abre el modal por primera vez
+    if (step === 1 && !formData.nombre_facturacion) {
+      setCurrentField('nombre_facturacion');
+      
+      // Mensaje inicial solo una vez
+      setTimeout(() => {
+        speak('Finalizar compra. Vamos a completar tus datos paso a paso. Indícame tu nombre completo. Di: mi nombre es, seguido de tu nombre.');
+      }, 500);
+    }
+  }, [isOpen, step, formData.nombre_facturacion, speak]);
+  
+  // Función para pedir el siguiente campo
+  const pedirSiguienteCampo = useCallback((campoActual) => {
+    console.log('🎯 Pidiendo siguiente campo:', campoActual);
     
-    const instrucciones = {
-      1: `Paso 1 de 3: Datos de Facturación y Pago. 
-          Tu carrito tiene ${itemCount} productos por un total de ${total.toFixed(2)} dólares.
-          Puedes llenar todos los campos usando tu voz.
-          Di "mi nombre es" seguido de tu nombre completo.
-          Di "mi documento es" seguido de tu número de cédula.
-          Di "mi teléfono es" seguido de tu teléfono.
-          Di "mi correo es" seguido de tu email, puedes decir "arroba" para el símbolo arroba.
-          Para el pago: Di "mi tarjeta es" seguido de los 16 dígitos.
-          Di "CVV" o "código de seguridad" seguido de 3 o 4 dígitos.
-          Di "vencimiento" seguido del mes y año, por ejemplo: vencimiento 12 25.
-          Di "ayuda" en cualquier momento para escuchar los comandos.
-          Di "siguiente" cuando estés listo para continuar.`,
-      
-      2: `Paso 2 de 3: Opciones de Entrega. 
-          Di "con envío" si quieres recibir el pedido en tu domicilio.
-          Di "sin envío" o "recogida en tienda" si prefieres recoger en nuestras tiendas.
-          Si eliges envío a domicilio:
-          Di "mi dirección es" seguido de tu dirección completa con calle y número.
-          Di "mi ciudad es" seguido del nombre de tu ciudad.
-          Di "código postal" seguido del código.
-          Di "ayuda" para escuchar los comandos.
-          Di "siguiente" para continuar, o "atrás" para volver al paso anterior.`,
-      
-      3: `Paso 3 de 3: Confirmación Final.
-          Por favor revisa que todos tus datos sean correctos.
-          Subtotal: ${subtotal.toFixed(2)} dólares.
-          IVA 19 por ciento: ${iva.toFixed(2)} dólares.
-          Total a pagar: ${total.toFixed(2)} dólares.
-          ${requiereEnvio ? 
-            `Envío a domicilio: ${formData.direccion || 'No especificada'}, ${formData.ciudad || ''}.` : 
-            `Recogida en tienda: ${tiendaSeleccionada}.`
-          }
-          Di "confirmar compra" para finalizar tu pedido.
-          Di "atrás" si necesitas modificar algún dato.
-          Di "cancelar" para salir.`
+    const mensajes = {
+      'documento_facturacion': 'Documento de identidad. Di: mi documento es, seguido de los números.',
+      'telefono_facturacion': 'Teléfono. Di: mi teléfono es, seguido de los números.',
+      'email_facturacion': 'Correo electrónico. Di: mi correo es, seguido de tu email. Puedes decir arroba.',
+      'numero_tarjeta': 'Número de tarjeta. Di: mi tarjeta es, seguido de los 16 dígitos.',
+      'cvv': 'Código de seguridad. Di: CVV, seguido de 3 o 4 dígitos.',
+      'fecha_expiracion': 'Fecha de vencimiento. Di: vencimiento, mes y año. Ejemplo: vencimiento 12 25.',
+      'completado_paso1': 'Datos completados. ¿Envío a domicilio o recogida en tienda? Di: con envío, o sin envío.',
+      'direccion': 'Dirección. Di: mi dirección es, seguido de tu dirección completa.',
+      'ciudad': 'Ciudad. Di: mi ciudad es, seguido del nombre.',
+      'codigo_postal': 'Código postal. Di: código postal, seguido de los números.',
+      'completado_envio': 'Datos de envío completados. Di siguiente para revisar.'
     };
     
-    setTimeout(() => {
-      speak(instrucciones[step]);
-    }, 800);
-  }, [step, isOpen, total, speak, cartItems, subtotal, iva, formData, requiereEnvio, tiendaSeleccionada]);
+    const mensaje = mensajes[campoActual];
+    console.log('📢 Mensaje a decir:', mensaje);
+    
+    if (mensaje) {
+      setTimeout(() => {
+        console.log('🔊 Ejecutando speak');
+        speak(mensaje);
+      }, 400);
+    }
+  }, [speak]);
 
   // Función para convertir números en palabras a dígitos
   const convertirNumerosADigitos = (texto) => {
@@ -143,9 +152,51 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
   useEffect(() => {
     if (!transcript || !isOpen) return;
     
-    processVoiceCommand(transcript);
+    const cmd = transcript.toLowerCase().trim();
+    
+    // Si está escuchando, solo acumular números (no procesar aún)
+    if (isListening) {
+      // Detectar si son solo números o números en palabras (para documentos, teléfonos, etc.)
+      const numerosEnTexto = convertirNumerosADigitos(cmd);
+      const soloNumeros = numerosEnTexto.replace(/\s/g, '').replace(/\D/g, '');
+      
+      // Si el campo actual es documento/teléfono/tarjeta y solo hay números, acumular
+      const esCampoNumerico = currentField === 'documento_facturacion' || 
+                              currentField === 'telefono_facturacion' || 
+                              currentField === 'numero_tarjeta' ||
+                              currentField === 'cvv' ||
+                              currentField === 'codigo_postal';
+      
+      if (esCampoNumerico && soloNumeros.length > 0 && 
+          !cmd.includes('mi documento es') && 
+          !cmd.includes('mi teléfono es') && 
+          !cmd.includes('mi tarjeta es') &&
+          !cmd.includes('cvv') &&
+          !cmd.includes('vencimiento') &&
+          !cmd.includes('código postal')) {
+        // Acumular números mientras el usuario está hablando
+        accumulatedNumbersRef.current = soloNumeros;
+        console.log('📝 Acumulando números mientras hablas:', accumulatedNumbersRef.current);
+        return; // No procesar aún, esperar a que termine de hablar
+      }
+      
+      // Si no es un campo numérico o no son solo números, no hacer nada mientras escucha
+      return;
+    }
+    
+    // Cuando termine de escuchar, procesar el comando
+    // Esperar un momento después de que termine el reconocimiento antes de procesar
+    // Esto evita que el bot hable mientras el usuario todavía está hablando
+    const timer = setTimeout(() => {
+      // Solo procesar si no está escuchando
+      if (!isListening) {
+        processVoiceCommand(transcript);
+      }
+    }, 500); // Esperar 500ms después de que termine el reconocimiento
+    
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcript, isOpen]);
+  }, [transcript, isOpen, isListening, currentField]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -240,11 +291,40 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
   // Procesar comandos de voz del checkout
   const processVoiceCommand = useCallback((command) => {
+    // No procesar comandos mientras todavía está escuchando
+    if (isListening) {
+      console.log('⏸️ Esperando a que termine el reconocimiento...');
+      return;
+    }
+    
     const cmd = command.toLowerCase().trim();
     console.log('Comando checkout recibido:', cmd);
+    
+    // Prevenir procesamiento duplicado del mismo comando
+    // EXCEPCIÓN: Si es "confirmar compra" y ya se leyó el resumen, permitir procesarlo de nuevo
+    const esConfirmarCompra = cmd.includes('confirmar compra') || cmd.includes('confirmar') || 
+                               cmd.includes('finalizar compra') || cmd.includes('finalizar') || 
+                               cmd.includes('comprar') || cmd.includes('pagar');
+    
+    const now = Date.now();
+    if (cmd === lastProcessedCommandRef.current && !(esConfirmarCompra && resumenLeido)) {
+      console.log('⏭️ Comando duplicado ignorado');
+      return;
+    }
+    
+    // Resetear la bandera de comando procesado
+    commandProcessedSuccessfullyRef.current = false;
+    
+    // Si es confirmar compra y ya se leyó el resumen, actualizar el comando para permitir la confirmación
+    if (esConfirmarCompra && resumenLeido) {
+      lastProcessedCommandRef.current = cmd + '_confirmar'; // Cambiar el comando para que no se detecte como duplicado
+    } else {
+      lastProcessedCommandRef.current = cmd;
+    }
 
     // Comando de ayuda
     if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir')) {
+      commandProcessedSuccessfullyRef.current = true;
       let ayudaTexto = '';
       
       if (step === 1) {
@@ -279,18 +359,21 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
     // Comandos de navegación
     if (cmd.includes('siguiente') || cmd.includes('continuar')) {
+      commandProcessedSuccessfullyRef.current = true;
       handleNextStep();
       clearTranscript();
       return;
     }
 
     if (cmd.includes('atrás') || cmd.includes('volver') || cmd.includes('anterior')) {
+      commandProcessedSuccessfullyRef.current = true;
       handlePrevStep();
       clearTranscript();
       return;
     }
 
     if (cmd.includes('cancelar') || cmd.includes('cerrar') || cmd.includes('salir')) {
+      commandProcessedSuccessfullyRef.current = true;
       speak('Cerrando el proceso de compra');
       onClose();
       clearTranscript();
@@ -301,6 +384,7 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
     if (step === 1) {
       // Nombre
       if (cmd.includes('mi nombre es') || cmd.includes('me llamo')) {
+        commandProcessedSuccessfullyRef.current = true;
         const nombre = cmd.replace(/mi nombre es|me llamo|nombre/g, '').trim();
         if (nombre) {
           // Capitalizar primera letra de cada palabra
@@ -308,81 +392,121 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
             word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
           ).join(' ');
           setFormData(prev => ({ ...prev, nombre_facturacion: nombreCapitalizado }));
-          speak(`Nombre registrado: ${nombreCapitalizado}. Campo completado.`);
+          speak(`${nombreCapitalizado} registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.nombre_facturacion;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('documento_facturacion');
+          pedirSiguienteCampo('documento_facturacion');
+        } else {
+          speak('No escuché el nombre. Por favor, repítelo.');
         }
         clearTranscript();
         return;
       }
 
       // Documento
-      if (cmd.includes('mi documento es') || cmd.includes('mi cédula es') || cmd.includes('documento')) {
-        let documentoTexto = cmd.replace(/mi documento es|mi cédula es|mi cedula es|documento|cédula|cedula/g, '').trim();
+      // Detectar si es comando de documento o si estamos en el campo de documento y solo hay números
+      const esComandoDocumento = cmd.includes('mi documento es') || cmd.includes('mi cédula es') || cmd.includes('mi cedula es');
+      const esSoloNumerosEnDocumento = currentField === 'documento_facturacion' && 
+                                        (accumulatedNumbersRef.current.length > 0 || 
+                                         /^[\d\s]+$/.test(convertirNumerosADigitos(cmd).replace(/[^\d\s]/g, '')));
+      
+      if (esComandoDocumento || esSoloNumerosEnDocumento) {
+        commandProcessedSuccessfullyRef.current = true;
+        
+        let documentoTexto = '';
+        
+        // Si el comando incluye "mi documento es", usar ese texto
+        if (esComandoDocumento) {
+          documentoTexto = cmd.replace(/mi documento es|mi cédula es|mi cedula es|documento|cédula|cedula/g, '').trim();
+        } else {
+          // Si solo son números (modo acumulación), usar los números acumulados o el texto actual
+          documentoTexto = accumulatedNumbersRef.current || cmd;
+        }
+        
         // Convertir números en palabras a dígitos
         documentoTexto = convertirNumerosADigitos(documentoTexto);
-        const documento = documentoTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        const documento = documentoTexto.replace(/\s/g, '').replace(/\D/g, '');
+        
+        // Limpiar acumulador después de usar
+        accumulatedNumbersRef.current = '';
         
         console.log('📄 Documento procesado:', documento);
         
         if (documento && documento.length >= 6) {
           setFormData(prev => ({ ...prev, documento_facturacion: documento }));
-          speak(`Documento registrado: ${documento.split('').join(' ')}. Campo completado.`);
+          speak(`Documento registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.documento_facturacion;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('telefono_facturacion');
+          pedirSiguienteCampo('telefono_facturacion');
         } else {
-          speak('El documento debe tener al menos 6 dígitos. Por favor, repítelo.');
+          speak('El documento debe tener al menos 6 dígitos. Repítelo.');
         }
         clearTranscript();
         return;
       }
 
       // Teléfono
-      if (cmd.includes('mi teléfono es') || cmd.includes('mi telefono es') || cmd.includes('teléfono') || cmd.includes('telefono')) {
+      if (cmd.includes('mi teléfono es') || cmd.includes('mi telefono es')) {
+        commandProcessedSuccessfullyRef.current = true;
         let telefonoTexto = cmd.replace(/mi teléfono es|mi telefono es|teléfono|telefono/g, '').trim();
-        // Convertir números en palabras a dígitos
         telefonoTexto = convertirNumerosADigitos(telefonoTexto);
-        const telefono = telefonoTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        const telefono = telefonoTexto.replace(/\s/g, '').replace(/\D/g, '');
         
         console.log('📞 Teléfono procesado:', telefono);
         
         if (telefono && telefono.length >= 7) {
           setFormData(prev => ({ ...prev, telefono_facturacion: telefono }));
-          speak(`Teléfono registrado: ${telefono.split('').join(' ')}. Campo completado.`);
+          speak(`Teléfono registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.telefono_facturacion;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('email_facturacion');
+          pedirSiguienteCampo('email_facturacion');
         } else {
-          speak('El teléfono debe tener al menos 7 dígitos. Por favor, repítelo.');
+          speak('El teléfono debe tener al menos 7 dígitos. Repítelo.');
         }
         clearTranscript();
         return;
       }
 
       // Email
-      if (cmd.includes('mi correo es') || cmd.includes('mi email es') || cmd.includes('correo') || cmd.includes('email')) {
+      if (cmd.includes('mi correo es') || cmd.includes('mi email es')) {
+        commandProcessedSuccessfullyRef.current = true;
         let email = cmd.replace(/mi correo es|mi email es|correo|email/g, '').trim();
-        // Convertir palabras a símbolos
         email = email.replace(/\sarroba\s/g, '@').replace(/arroba/g, '@');
         email = email.replace(/\spunto\s/g, '.').replace(/punto\scom/g, '.com');
-        email = email.replace(/\s/g, ''); // Eliminar espacios
+        email = email.replace(/\s/g, '');
         
         if (email) {
           setFormData(prev => ({ ...prev, email_facturacion: email }));
-          speak(`Correo electrónico registrado: ${email}. Campo completado.`);
+          speak(`Correo registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.email_facturacion;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('numero_tarjeta');
+          pedirSiguienteCampo('numero_tarjeta');
+        } else {
+          speak('No escuché el correo. Por favor, repítelo.');
         }
         clearTranscript();
         return;
@@ -390,24 +514,28 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Tarjeta
       if (cmd.includes('mi tarjeta es') || cmd.includes('tarjeta')) {
+        commandProcessedSuccessfullyRef.current = true;
         let tarjetaTexto = cmd.replace(/mi tarjeta es|tarjeta/g, '').trim();
-        // Convertir números en palabras a dígitos
         tarjetaTexto = convertirNumerosADigitos(tarjetaTexto);
-        const tarjeta = tarjetaTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        const tarjeta = tarjetaTexto.replace(/\s/g, '').replace(/\D/g, '');
         
         console.log('💳 Tarjeta procesada:', tarjeta);
         
         if (tarjeta && tarjeta.length >= 15) {
           const formateada = tarjeta.replace(/(\d{4})/g, '$1 ').trim();
           setFormData(prev => ({ ...prev, numero_tarjeta: formateada }));
-          speak(`Tarjeta registrada terminada en ${tarjeta.slice(-4).split('').join(' ')}`);
+          speak(`Tarjeta registrada.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.numero_tarjeta;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('cvv');
+          pedirSiguienteCampo('cvv');
         } else {
-          speak('La tarjeta debe tener al menos 15 dígitos. Por favor, repítela.');
+          speak('La tarjeta debe tener al menos 15 dígitos. Repítela.');
         }
         clearTranscript();
         return;
@@ -415,23 +543,27 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // CVV
       if (cmd.includes('cvv') || cmd.includes('código de seguridad')) {
+        commandProcessedSuccessfullyRef.current = true;
         let cvvTexto = cmd.replace(/cvv|código de seguridad|codigo de seguridad/g, '').trim();
-        // Convertir números en palabras a dígitos
         cvvTexto = convertirNumerosADigitos(cvvTexto);
-        const cvv = cvvTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        const cvv = cvvTexto.replace(/\s/g, '').replace(/\D/g, '');
         
         console.log('🔐 CVV procesado:', cvv);
         
         if (cvv && cvv.length >= 3 && cvv.length <= 4) {
           setFormData(prev => ({ ...prev, cvv: cvv }));
-          speak(`Código de seguridad de ${cvv.length} dígitos registrado correctamente`);
+          speak(`CVV registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.cvv;
             return newErrors;
           });
+          
+          // Avanzar al siguiente campo
+          setCurrentField('fecha_expiracion');
+          pedirSiguienteCampo('fecha_expiracion');
         } else {
-          speak('El CVV debe tener 3 o 4 dígitos. Por favor, repítelo.');
+          speak('El CVV debe tener 3 o 4 dígitos. Repítelo.');
         }
         clearTranscript();
         return;
@@ -439,10 +571,10 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Vencimiento
       if (cmd.includes('vencimiento') || cmd.includes('expiración') || cmd.includes('expira')) {
+        commandProcessedSuccessfullyRef.current = true;
         let fechaTexto = cmd.replace(/vencimiento|expiración|expira|fecha de vencimiento|fecha de expiración/g, '').trim();
-        // Convertir números en palabras a dígitos
         fechaTexto = convertirNumerosADigitos(fechaTexto);
-        let fecha = fechaTexto.replace(/\s/g, '').replace(/\D/g, ''); // Solo dígitos
+        let fecha = fechaTexto.replace(/\s/g, '').replace(/\D/g, '');
         
         console.log('📅 Fecha de vencimiento procesada:', fecha);
         
@@ -450,14 +582,17 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
         if (fecha.length >= 4) {
           fecha = fecha.substring(0, 2) + '/' + fecha.substring(2, 4);
           setFormData(prev => ({ ...prev, fecha_expiracion: fecha }));
-          speak(`Fecha de vencimiento registrada: mes ${fecha.substring(0, 2)}, año ${fecha.substring(3, 5)}`);
+          speak(`Vencimiento registrado. Datos de facturación completados.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.fecha_expiracion;
             return newErrors;
           });
+          
+          // Todos los campos del paso 1 completados, pedir avanzar
+          pedirSiguienteCampo('completado_paso1');
         } else {
-          speak('La fecha debe tener mes y año. Por ejemplo: 12 25. Por favor, repítela.');
+          speak('La fecha debe tener mes y año. Por ejemplo: 12 25. Repítela.');
         }
         clearTranscript();
         return;
@@ -468,6 +603,7 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
     if (step === 2) {
       // Con envío
       if (cmd.includes('con envío') || cmd.includes('con envio') || cmd.includes('envío a domicilio')) {
+        commandProcessedSuccessfullyRef.current = true;
         setRequiereEnvio(true);
         speak('Has seleccionado envío a domicilio. Por favor indica tu dirección');
         clearTranscript();
@@ -476,6 +612,7 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Sin envío
       if (cmd.includes('sin envío') || cmd.includes('sin envio') || cmd.includes('recogida en tienda') || cmd.includes('recoger en tienda')) {
+        commandProcessedSuccessfullyRef.current = true;
         setRequiereEnvio(false);
         speak(`Has seleccionado recogida en tienda. Podrás recoger tu pedido en: ${tiendaSeleccionada}`);
         clearTranscript();
@@ -483,11 +620,14 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
       }
 
       // Dirección
-      if (cmd.includes('mi dirección es') || cmd.includes('mi direccion es') || cmd.includes('dirección')) {
+      if (cmd.includes('mi dirección es') || cmd.includes('mi direccion es') || cmd.includes('dirección') || cmd.includes('direccion')) {
+        commandProcessedSuccessfullyRef.current = true;
         const direccion = cmd.replace(/mi dirección es|mi direccion es|dirección|direccion/g, '').trim();
         if (direccion) {
           setFormData(prev => ({ ...prev, direccion: direccion }));
           speak(`Dirección registrada`);
+        } else {
+          speak('No escuché la dirección. Por favor, repítela.');
         }
         clearTranscript();
         return;
@@ -495,10 +635,13 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Ciudad
       if (cmd.includes('mi ciudad es') || cmd.includes('ciudad')) {
+        commandProcessedSuccessfullyRef.current = true;
         const ciudad = cmd.replace(/mi ciudad es|ciudad/g, '').trim();
         if (ciudad) {
           setFormData(prev => ({ ...prev, ciudad: ciudad }));
           speak(`Ciudad registrada: ${ciudad}`);
+        } else {
+          speak('No escuché la ciudad. Por favor, repítela.');
         }
         clearTranscript();
         return;
@@ -506,6 +649,7 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
       // Código postal
       if (cmd.includes('código postal') || cmd.includes('codigo postal') || cmd.includes('postal')) {
+        commandProcessedSuccessfullyRef.current = true;
         let codigoTexto = cmd.replace(/código postal|codigo postal|postal/g, '').trim();
         // Convertir números en palabras a dígitos
         codigoTexto = convertirNumerosADigitos(codigoTexto);
@@ -515,7 +659,7 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
         
         if (codigo) {
           setFormData(prev => ({ ...prev, codigo_postal: codigo }));
-          speak(`Código postal registrado: ${codigo.split('').join(' ')}`);
+          speak(`Código postal registrado.`);
           setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.codigo_postal;
@@ -531,20 +675,56 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
 
     // PASO 3: Confirmación
     if (step === 3) {
-      if (cmd.includes('confirmar compra') || cmd.includes('confirmar') || cmd.includes('finalizar')) {
+      if (cmd.includes('confirmar compra') || cmd.includes('confirmar') || cmd.includes('finalizar compra') || cmd.includes('finalizar') || cmd.includes('comprar') || cmd.includes('pagar')) {
+        commandProcessedSuccessfullyRef.current = true;
+        
+        console.log('🔍 Estado resumenLeido:', resumenLeido);
+        
+        // Si aún no se ha leído el resumen, leerlo primero
+        if (!resumenLeido) {
+          console.log('📋 Leyendo resumen de datos por primera vez...');
+          setResumenLeido(true);
+          const resumen = leerResumenDatos();
+          speak(resumen);
+          clearTranscript();
+          // Limpiar el comando procesado para permitir la segunda confirmación
+          lastProcessedCommandRef.current = '';
+          return;
+        }
+        
+        // Si ya se leyó el resumen, proceder con la confirmación
+        console.log('✅ Confirmando compra después de leer resumen...');
         speak('Procesando tu compra. Por favor espera');
         handleConfirmPurchase();
         clearTranscript();
         return;
       }
     }
+    
+    // También reconocer "finalizar compra" en otros pasos (por si el usuario lo dice)
+    if (cmd.includes('finalizar compra') || cmd.includes('terminar compra') || cmd.includes('comprar') || cmd.includes('pagar')) {
+      // Si estamos en paso 1 o 2, indicar que debe completar los pasos anteriores
+      if (step === 1) {
+        commandProcessedSuccessfullyRef.current = true;
+        speak('Por favor completa los datos de facturación primero. Di siguiente cuando termines.');
+        clearTranscript();
+        return;
+      } else if (step === 2) {
+        commandProcessedSuccessfullyRef.current = true;
+        speak('Por favor completa los datos de envío primero. Di siguiente cuando termines.');
+        clearTranscript();
+        return;
+      }
+    }
 
     // Comando no reconocido
-    if (cmd.length > 3) {
+    // Solo mostrar mensaje de error si el comando NO fue procesado exitosamente
+    if (cmd.length > 3 && !commandProcessedSuccessfullyRef.current) {
+      console.log('❌ Comando no reconocido:', cmd);
       speak('Comando no reconocido. Di "ayuda" para escuchar los comandos disponibles');
       clearTranscript();
     }
-  }, [step, speak, clearTranscript, onClose, tiendaSeleccionada]);
+  }, [step, speak, clearTranscript, onClose, tiendaSeleccionada, pedirSiguienteCampo, isListening, currentField]);
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -565,6 +745,55 @@ export const CheckoutModal = ({ isOpen, onClose, cartItems, onCheckoutComplete }
   const handlePrevStep = () => {
     setStep(step - 1);
   };
+
+  // Función para leer resumen de datos antes de confirmar
+  const leerResumenDatos = useCallback(() => {
+    let resumen = 'Resumen de tu compra. ';
+    
+    // Productos en el carrito
+    if (cartItems.length > 0) {
+      resumen += `Productos: `;
+      cartItems.forEach((item, index) => {
+        resumen += `${item.quantity} ${item.name}`;
+        if (index < cartItems.length - 1) {
+          resumen += ', ';
+        }
+      });
+      resumen += '. ';
+    }
+    
+    // Datos de facturación
+    resumen += `Nombre: ${formData.nombre_facturacion || 'no registrado'}. `;
+    resumen += `Documento: ${formData.documento_facturacion || 'no registrado'}. `;
+    resumen += `Teléfono: ${formData.telefono_facturacion || 'no registrado'}. `;
+    resumen += `Correo: ${formData.email_facturacion || 'no registrado'}. `;
+    
+    // Datos de pago
+    if (formData.numero_tarjeta) {
+      const ultimos4 = formData.numero_tarjeta.replace(/\s/g, '').slice(-4);
+      resumen += `Tarjeta terminada en: ${ultimos4}. `;
+    }
+    
+    // Datos de envío
+    if (requiereEnvio) {
+      resumen += `Envío a domicilio. `;
+      resumen += `Dirección: ${formData.direccion || 'no registrada'}. `;
+      resumen += `Ciudad: ${formData.ciudad || 'no registrada'}. `;
+      if (formData.codigo_postal) {
+        resumen += `Código postal: ${formData.codigo_postal}. `;
+      }
+    } else {
+      resumen += `Recogida en tienda: ${tiendaSeleccionada}. `;
+    }
+    
+    // Totales
+    resumen += `Subtotal: ${subtotal.toFixed(2)} pesos. `;
+    resumen += `IVA: ${iva.toFixed(2)} pesos. `;
+    resumen += `Total a pagar: ${total.toFixed(2)} pesos. `;
+    resumen += `Si los datos son correctos, di confirmar compra nuevamente para finalizar.`;
+    
+    return resumen;
+  }, [formData, requiereEnvio, tiendaSeleccionada, subtotal, iva, total, cartItems]);
 
   const handleConfirmPurchase = async () => {
     setLoading(true);

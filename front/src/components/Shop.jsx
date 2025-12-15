@@ -27,6 +27,7 @@ export const Shop = () => {
   // Control de comandos procesados para evitar duplicados
   const lastProcessedCommand = useRef('');
   const lastProcessedTime = useRef(0);
+  const commandProcessedSuccessfully = useRef(false);
   
   const { speak, transcript, clearTranscript, startListening, isListening } = useVoiceAssistant();
 
@@ -101,6 +102,12 @@ export const Shop = () => {
 
   // Procesar comandos de voz (optimizado para discapacidad visual)
   const processVoiceCommand = useCallback((command) => {
+    // No procesar comandos mientras todavía está escuchando
+    if (isListening) {
+      console.log('⏸️ Esperando a que termine el reconocimiento...');
+      return;
+    }
+    
     const cmd = command.toLowerCase().trim();
     console.log('🎤 Comando recibido:', cmd);
     
@@ -111,9 +118,20 @@ export const Shop = () => {
       return;
     }
     
+    // Si el comando ya fue procesado exitosamente, no procesarlo de nuevo
+    if (commandProcessedSuccessfully.current && cmd === lastProcessedCommand.current) {
+      console.log('⏭️ Comando ya procesado exitosamente, ignorando');
+      return;
+    }
+    
+    // Guardar el comando actual ANTES de resetear la bandera
     lastProcessedCommand.current = cmd;
     lastProcessedTime.current = now;
-    console.log('✅ Comando aceptado para procesamiento');
+    
+    // Resetear la bandera de comando procesado (se marcará como true si se procesa exitosamente)
+    commandProcessedSuccessfully.current = false;
+    
+    console.log('✅ Comando aceptado para procesamiento:', cmd);
 
     // ===== COMANDO: AYUDA =====
     if (cmd.includes('ayuda') || cmd.includes('comandos') || cmd.includes('qué puedo decir') || cmd.includes('que puedo decir')) {
@@ -126,6 +144,7 @@ export const Shop = () => {
                     'Para finalizar la compra di: finalizar compra. ' +
                     'Para información de un producto di: información de seguido del nombre del producto. ' +
                     'Di ayuda en cualquier momento para escuchar esta lista.';
+      commandProcessedSuccessfully.current = true;
       speak(ayuda);
       clearTranscript();
       return;
@@ -267,6 +286,7 @@ export const Shop = () => {
         console.log(`📊 Total en carrito ahora: ${totalInCart} unidades de ${product.name}`);
         
         // Mensaje de confirmación ULTRA CORTO
+        commandProcessedSuccessfully.current = true;
         speak(`${cantidadFinal} ${product.name}. Total ${totalInCart}.`);
         
         console.log(`✅ Agregado exitosamente: ${cantidadFinal} x ${product.name}`);
@@ -274,6 +294,7 @@ export const Shop = () => {
         console.log(`🛒 Total en carrito de este producto: ${totalInCart} unidades`);
       } else {
         console.log('❌ Producto no encontrado en el comando:', cmd);
+        commandProcessedSuccessfully.current = true; // También marcamos como procesado aunque no encontró producto
         speak('No encontré ese producto. Por favor, di leer productos para escuchar los productos disponibles.');
       }
       clearTranscript();
@@ -282,6 +303,7 @@ export const Shop = () => {
 
     // ===== COMANDO: LEER/VER CARRITO COMPLETO =====
     if (cmd.includes('leer carrito') || cmd.includes('ver carrito') || cmd.includes('mostrar carrito') || cmd.includes('qué hay en el carrito') || cmd.includes('que hay en el carrito')) {
+      commandProcessedSuccessfully.current = true;
       if (cartItems.length === 0) {
         speak('Tu carrito está vacío. Di leer productos para conocer los productos disponibles.');
       } else {
@@ -304,6 +326,7 @@ export const Shop = () => {
 
     // ===== COMANDO: INFORMACIÓN DE PRODUCTO =====
     if (cmd.includes('información') || cmd.includes('informacion') || cmd.includes('detalles') || cmd.includes('precio de') || cmd.includes('cuánto cuesta') || cmd.includes('cuanto cuesta')) {
+      commandProcessedSuccessfully.current = true;
       const productMatches = products.filter(p => 
         cmd.includes(p.name.toLowerCase()) || 
         p.name.toLowerCase().split(' ').some(word => cmd.includes(word))
@@ -327,6 +350,7 @@ export const Shop = () => {
 
     // ===== COMANDO: BUSCAR PRODUCTO =====
     if (cmd.includes('buscar') || cmd.includes('busca') || cmd.includes('encuentra')) {
+      commandProcessedSuccessfully.current = true;
       const searchTerm = cmd.replace(/buscar|busca|encuentra/g, '').trim();
       if (searchTerm) {
         setSearchQuery(searchTerm);
@@ -361,6 +385,7 @@ export const Shop = () => {
 
     // ===== COMANDO: LEER PRODUCTOS DISPONIBLES =====
     if (cmd.includes('leer productos') || cmd.includes('qué productos hay') || cmd.includes('que productos hay') || cmd.includes('mostrar productos') || cmd.includes('listar productos')) {
+      commandProcessedSuccessfully.current = true;
       if (products.length === 0) {
         speak('No hay productos disponibles en este momento.');
       } else {
@@ -384,6 +409,7 @@ export const Shop = () => {
 
     // ===== COMANDO: LEER CATEGORÍAS =====
     if (cmd.includes('categorías') || cmd.includes('categorias') || cmd.includes('qué categorías hay') || cmd.includes('que categorias hay')) {
+      commandProcessedSuccessfully.current = true;
       const categoriasDisponibles = categories.filter(c => c !== 'todas');
       if (categoriasDisponibles.length > 0) {
         let mensaje = `Tenemos ${categoriasDisponibles.length} categorías: `;
@@ -401,6 +427,7 @@ export const Shop = () => {
 
     // ===== COMANDO: FILTRAR POR CATEGORÍA =====
     if (cmd.includes('filtrar') || cmd.includes('categoría') || cmd.includes('categoria') || cmd.includes('mostrar solo')) {
+      commandProcessedSuccessfully.current = true;
       const categoryMatch = categories.find(cat => 
         cmd.includes(cat.toLowerCase()) && cat !== 'todas'
       );
@@ -421,6 +448,7 @@ export const Shop = () => {
 
     // ===== COMANDO: VACIAR CARRITO =====
     if (cmd.includes('vaciar carrito') || cmd.includes('limpiar carrito') || cmd.includes('borrar carrito') || cmd.includes('eliminar todo del carrito')) {
+      commandProcessedSuccessfully.current = true;
       if (cartItems.length === 0) {
         speak('Tu carrito ya está vacío.');
       } else {
@@ -434,6 +462,7 @@ export const Shop = () => {
 
     // ===== COMANDO: QUITAR/ELIMINAR PRODUCTO DEL CARRITO =====
     if (cmd.includes('quitar') || cmd.includes('eliminar') || cmd.includes('remover')) {
+      commandProcessedSuccessfully.current = true;
       const productMatches = cartItems.filter(item => 
         cmd.includes(item.name.toLowerCase())
       );
@@ -450,7 +479,13 @@ export const Shop = () => {
     }
 
     // ===== COMANDO: FINALIZAR COMPRA =====
-    if (cmd.includes('finalizar compra') || cmd.includes('terminar compra') || cmd.includes('comprar') || cmd.includes('pagar') || cmd.includes('proceder al pago')) {
+    // Solo procesar este comando si el modal NO está abierto
+    // Si el modal está abierto, el CheckoutModal se encargará de procesar los comandos
+    if (!showCheckoutModal && (cmd.includes('finalizar compra') || cmd.includes('terminar compra') || cmd.includes('comprar') || cmd.includes('pagar') || cmd.includes('proceder al pago'))) {
+      // Marcar como procesado ANTES de cualquier otra operación
+      commandProcessedSuccessfully.current = true;
+      console.log('✅ Comando "finalizar compra" procesado exitosamente en Shop');
+      
       if (cartItems.length === 0) {
         speak('Tu carrito está vacío. Agrega productos antes de finalizar la compra. Di leer productos para conocer los productos disponibles.');
       } else {
@@ -460,11 +495,18 @@ export const Shop = () => {
         handleCheckout();
       }
       clearTranscript();
+      return; // IMPORTANTE: return aquí para evitar que continúe al mensaje de error
+    }
+    
+    // Si el modal está abierto, ignorar comandos de la tienda (el CheckoutModal los procesará)
+    if (showCheckoutModal) {
+      console.log('📦 Modal abierto, ignorando comando de Shop. El CheckoutModal lo procesará.');
       return;
     }
 
     // ===== COMANDO: TOTAL DEL CARRITO =====
     if (cmd.includes('total') || cmd.includes('cuánto debo') || cmd.includes('cuanto debo') || cmd.includes('cuánto es') || cmd.includes('cuanto es')) {
+      commandProcessedSuccessfully.current = true;
       if (cartItems.length === 0) {
         speak('Tu carrito está vacío, el total es cero pesos.');
       } else {
@@ -477,18 +519,39 @@ export const Shop = () => {
     }
 
     // ===== COMANDO NO RECONOCIDO =====
-    if (cmd.length > 0) {
+    // Solo mostrar mensaje de error si el comando NO fue procesado exitosamente
+    if (cmd.length > 0 && !commandProcessedSuccessfully.current) {
+      console.log('❌ Comando no reconocido:', cmd);
+      console.log('🔍 Estado de commandProcessedSuccessfully:', commandProcessedSuccessfully.current);
       speak('No entendí ese comando. Di ayuda para escuchar todos los comandos disponibles.');
       clearTranscript();
+    } else if (cmd.length > 0 && commandProcessedSuccessfully.current) {
+      console.log('✅ Comando procesado exitosamente, no se muestra error');
     }
-  }, [products, allProducts, cartItems, speak, clearTranscript, categories, setSearchQuery, setSelectedCategory]);
+  }, [products, allProducts, cartItems, speak, clearTranscript, categories, setSearchQuery, setSelectedCategory, isListening, showCheckoutModal]);
 
   // Efecto para procesar transcripciones
   useEffect(() => {
-    if (transcript) {
-      processVoiceCommand(transcript);
+    if (transcript && !isListening) {
+      // Prevenir procesamiento duplicado
+      const cmd = transcript.toLowerCase().trim();
+      if (cmd === lastProcessedCommand.current) {
+        console.log('⏭️ Transcript duplicado ignorado en useEffect');
+        return;
+      }
+      
+      // Esperar un momento después de que termine el reconocimiento antes de procesar
+      // Esto evita que el bot hable mientras el usuario todavía está hablando
+      const timer = setTimeout(() => {
+        // Verificar nuevamente antes de procesar
+        if (!isListening && transcript) {
+          processVoiceCommand(transcript);
+        }
+      }, 500); // Esperar 500ms después de que termine el reconocimiento
+      
+      return () => clearTimeout(timer);
     }
-  }, [transcript, processVoiceCommand]);
+  }, [transcript, processVoiceCommand, isListening]);
 
   // Agregar producto al carrito
   const addToCart = (product) => {
@@ -610,6 +673,49 @@ export const Shop = () => {
 
       {/* Diagnóstico de Voz */}
       <VoiceDiagnostics />
+
+      {/* Botón de cerrar sesión */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '20px', 
+        left: '20px', 
+        zIndex: 100 
+      }}>
+        <button
+          onClick={() => {
+            speak('Cerrando sesión');
+            setTimeout(() => {
+              window.location.href = 'http://localhost:8000/login';
+            }, 500);
+          }}
+          style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(220, 53, 69, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#c82333';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#dc3545';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.3)';
+          }}
+        >
+          <i className="fas fa-sign-out-alt"></i>
+          Cerrar Sesión
+        </button>
+      </div>
 
       {/* Header */}
       <header className="shop-header">

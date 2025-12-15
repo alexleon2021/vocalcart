@@ -65,8 +65,11 @@ export const useVoiceAssistant = () => {
             case 'result':
             case 'final':
               console.log('✅ Final:', data.transcript);
-              setTranscript(data.transcript);
-              addChatMessage('user', data.transcript);
+              // Esperar un momento antes de actualizar el transcript para que termine el reconocimiento
+              setTimeout(() => {
+                setTranscript(data.transcript);
+                addChatMessage('user', data.transcript);
+              }, 200); // Pequeño delay para asegurar que el reconocimiento terminó
               break;
             
             case 'error':
@@ -262,8 +265,12 @@ export const useVoiceAssistant = () => {
     }
 
     isPushToTalkActiveRef.current = false;
-    setIsListening(false);
-    setVoiceStatus('Presiona ESPACIO para hablar');
+    
+    // Esperar un momento antes de cambiar el estado para que el servidor termine de procesar
+    setTimeout(() => {
+      setIsListening(false);
+      setVoiceStatus('Presiona ESPACIO para hablar');
+    }, 300); // Pequeño delay para que termine el procesamiento
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'stop' }));
